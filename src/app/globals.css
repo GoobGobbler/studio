@@ -260,4 +260,21 @@ body {
        transform: translate(1px, 1px);
    }
 
+    /* Retro Minimized Tab Styling (in Status Bar) */
+   .retro-minimized-tab {
+        @apply px-2 py-0.5 bg-card border border-b-border-dark border-r-border-dark border-t-border-light border-l-border-light text-foreground text-xs truncate max-w-[100px]; /* Truncate long names */
+        box-shadow: inset 1px 1px 0px 0px hsl(var(--border-light)), inset -1px -1px 0px 0px hsl(var(--border-dark));
+        cursor: default;
+    }
+     .retro-minimized-tab:hover {
+        background-color: hsl(var(--secondary));
+     }
+     .retro-minimized-tab:active {
+        @apply border-t-border-dark border-l-border-dark border-b-border-light border-r-border-light;
+        box-shadow: inset -1px -1px 0px 0px hsl(var(--border-light)), inset 1px 1px 0px 0px hsl(var(--border-dark));
+        transform: translate(1px, 1px);
+     }
+
 }
+
+    

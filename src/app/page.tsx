@@ -1,10 +1,11 @@
+'use client'; // Add this directive because we use client-side hooks
 
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarShortcut, MenubarTrigger, MenubarSub, MenubarSubContent, MenubarSubTrigger, MenubarRadioGroup, MenubarRadioItem, MenubarCheckboxItem } from "@/components/ui/menubar";
-import { Maximize2, Minus, X, Bot, Code, Terminal as TerminalIcon, Files, Puzzle, Mic, Hand, Activity, ShieldCheck, BarChart3, Users, Share2, Cloud, GitBranch, Save, FolderOpen, Search, Settings, LifeBuoy, Replace, SearchIcon, PackageOpen, HelpCircle, BookOpen, CodeXml, GitCommit, GitPullRequest, Database, FileKey, Globe, Palette } from "lucide-react";
+import { Maximize2, Minus, X, Bot, Code, Terminal as TerminalIcon, Files, Puzzle, Mic, Hand, Activity, ShieldCheck, BarChart3, Users, Share2, Cloud, GitBranch, Save, FolderOpen, Search, Settings, LifeBuoy, Replace, SearchIcon, PackageOpen, HelpCircle, BookOpen, CodeXml, GitCommit, GitPullRequest, Database, FileKey, Globe, Palette, Fullscreen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"; // Currently using Textarea, TODO: Replace with Monaco
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; // Import Label
@@ -767,60 +768,60 @@ export default function Home() {
 
 
      return (
-         
+         <div className="flex flex-col h-screen overflow-hidden bg-background">
              {/* Menu Bar */}
              <RetroMenubar
-                 onPluginManagerToggle={() => toggleWindowVisibility('pluginManager')},
-                 onShowOpenFile={() => toggleWindowVisibility('openFile')},
-                 onShowOpenFolder={() => toggleWindowVisibility('openFolder')},
-                 onShowSaveAs={() => toggleWindowVisibility('saveAs')},
-                 onShowManageSecrets={() => toggleWindowVisibility('manageSecrets')},
-                 onShowConfigureVault={() => toggleWindowVisibility('configureVault')},
-                 onShowProjectVars={() => toggleWindowVisibility('projectVars')},
-                 onShowAccountVars={() => toggleWindowVisibility('accountVars')},
-                 onFind={() => toggleWindowVisibility('findReplace')}, // Open combined find/replace window
-                 onReplace={() => toggleWindowVisibility('findReplace')}, // Open combined find/replace window
-                 onCommandPalette={() => toggleWindowVisibility('commandPalette')},
-                 onToggleFullScreen={toggleFullScreen},
-                 onShowMarketplace={() => toggleWindowVisibility('marketplace')},
-                 onShowInstallVsix={() => toggleWindowVisibility('installVsix')},
-                 onShowManageWorkflows={() => toggleWindowVisibility('manageWorkflows')},
-                 onExplainCode={handleExplainCode},
-                 onGenerateCode={() => toggleWindowVisibility('generateCode')},
-                 onRefactorCode={() => toggleWindowVisibility('refactorCode')},
-                 onGenerateTests={() => toggleWindowVisibility('generateTests')},
-                 onGenerateDocs={() => toggleWindowVisibility('generateDocs')},
-                 onFixBug={() => toggleWindowVisibility('fixBug')},
-                 onScaffoldAgent={() => toggleWindowVisibility('scaffoldAgent')},
-                 onQueryKnowledge={() => toggleWindowVisibility('queryKnowledge')},
-                 onIngestKnowledge={() => toggleWindowVisibility('ingestKnowledge')},
-                 onManageKnowledge={() => toggleWindowVisibility('manageKnowledge')},
-                 onConfigureOllama={() => toggleWindowVisibility('configureOllama')},
-                 onFineTuneModel={() => toggleWindowVisibility('fineTuneModel')},
-                 onConfigureVoiceGesture={() => toggleWindowVisibility('configureVoiceGesture')},
-                 onShowProfiling={() => toggleWindowVisibility('profiling')}, // Show relevant tab in Terminal/Logs panel? Or dedicated window? For now, window.
-                 onShowSecurity={() => toggleWindowVisibility('security')}, // Show relevant tab in Terminal/Logs panel? Or dedicated window? For now, window.
-                 onShowTelemetry={() => toggleWindowVisibility('telemetry')}, // Show relevant tab in Terminal/Logs panel? Or dedicated window? For now, window.
-                 onStartDebugging={() => toggleWindowVisibility('debugger')}, // Show debugger window
-                 onAddDebugConfig={() => toggleWindowVisibility('debugger')}, // Show debugger window (maybe focus config area)
-                 onShowGitCommit={() => toggleWindowVisibility('git')}, // Show Git window
-                 onGitPush={() => handleGenericAction('Git Push')},
-                 onGitPull={() => handleGenericAction('Git Pull')},
-                 onShowGitBranches={() => toggleWindowVisibility('git')}, // Show Git window (maybe focus branches)
-                 onShowImportGithub={() => toggleWindowVisibility('git')}, // Show Git window (maybe focus import)
-                 onApplyIaC={() => toggleWindowVisibility('devops')}, // Show DevOps window
-                 onGenerateIaC={() => toggleWindowVisibility('devops')}, // Show DevOps window
-                 onStartDockerEnv={() => toggleWindowVisibility('devops')}, // Show DevOps window
-                 onDeployK8s={() => toggleWindowVisibility('devops')}, // Show DevOps window
-                 onManageDeployments={() => toggleWindowVisibility('devops')}, // Show DevOps window
-                 onConfigureHosting={() => toggleWindowVisibility('devops')}, // Show DevOps window
-                 onShowLanguageEnv={() => toggleWindowVisibility('languageEnv')},
-                 onShowSettings={() => toggleWindowVisibility('settings')},
-                 onShowWelcome={() => toggleWindowVisibility('welcome')},
-                 onShowDocs={() => handleGenericAction('Open Documentation')}, // Likely opens external URL
-                 onShowApiDocs={() => handleGenericAction('Open Plugin API Docs')}, // Likely opens external URL
-                 onShowVoiceGestureCommands={() => toggleWindowVisibility('welcome')}, // Show in welcome guide or dedicated window?
-                 onCheckForUpdates={() => handleGenericAction('Check for Updates')},
+                 onPluginManagerToggle={() => toggleWindowVisibility('pluginManager')}
+                 onShowOpenFile={() => toggleWindowVisibility('openFile')}
+                 onShowOpenFolder={() => toggleWindowVisibility('openFolder')}
+                 onShowSaveAs={() => toggleWindowVisibility('saveAs')}
+                 onShowManageSecrets={() => toggleWindowVisibility('manageSecrets')}
+                 onShowConfigureVault={() => toggleWindowVisibility('configureVault')}
+                 onShowProjectVars={() => toggleWindowVisibility('projectVars')}
+                 onShowAccountVars={() => toggleWindowVisibility('accountVars')}
+                 onFind={() => toggleWindowVisibility('findReplace')} // Open combined find/replace window
+                 onReplace={() => toggleWindowVisibility('findReplace')} // Open combined find/replace window
+                 onCommandPalette={() => toggleWindowVisibility('commandPalette')}
+                 onToggleFullScreen={toggleFullScreen}
+                 onShowMarketplace={() => toggleWindowVisibility('marketplace')}
+                 onShowInstallVsix={() => toggleWindowVisibility('installVsix')}
+                 onShowManageWorkflows={() => toggleWindowVisibility('manageWorkflows')}
+                 onExplainCode={handleExplainCode}
+                 onGenerateCode={() => toggleWindowVisibility('generateCode')}
+                 onRefactorCode={() => toggleWindowVisibility('refactorCode')}
+                 onGenerateTests={() => toggleWindowVisibility('generateTests')}
+                 onGenerateDocs={() => toggleWindowVisibility('generateDocs')}
+                 onFixBug={() => toggleWindowVisibility('fixBug')}
+                 onScaffoldAgent={() => toggleWindowVisibility('scaffoldAgent')}
+                 onQueryKnowledge={() => toggleWindowVisibility('queryKnowledge')}
+                 onIngestKnowledge={() => toggleWindowVisibility('ingestKnowledge')}
+                 onManageKnowledge={() => toggleWindowVisibility('manageKnowledge')}
+                 onConfigureOllama={() => toggleWindowVisibility('configureOllama')}
+                 onFineTuneModel={() => toggleWindowVisibility('fineTuneModel')}
+                 onConfigureVoiceGesture={() => toggleWindowVisibility('configureVoiceGesture')}
+                 onShowProfiling={() => toggleWindowVisibility('profiling')} // Show relevant tab in Terminal/Logs panel? Or dedicated window? For now, window.
+                 onShowSecurity={() => toggleWindowVisibility('security')} // Show relevant tab in Terminal/Logs panel? Or dedicated window? For now, window.
+                 onShowTelemetry={() => toggleWindowVisibility('telemetry')} // Show relevant tab in Terminal/Logs panel? Or dedicated window? For now, window.
+                 onStartDebugging={() => toggleWindowVisibility('debugger')} // Show debugger window
+                 onAddDebugConfig={() => toggleWindowVisibility('debugger')} // Show debugger window (maybe focus config area)
+                 onShowGitCommit={() => toggleWindowVisibility('git')} // Show Git window
+                 onGitPush={() => handleGenericAction('Git Push')}
+                 onGitPull={() => handleGenericAction('Git Pull')}
+                 onShowGitBranches={() => toggleWindowVisibility('git')} // Show Git window (maybe focus branches)
+                 onShowImportGithub={() => toggleWindowVisibility('git')} // Show Git window (maybe focus import)
+                 onApplyIaC={() => toggleWindowVisibility('devops')} // Show DevOps window
+                 onGenerateIaC={() => toggleWindowVisibility('devops')} // Show DevOps window
+                 onStartDockerEnv={() => toggleWindowVisibility('devops')} // Show DevOps window
+                 onDeployK8s={() => toggleWindowVisibility('devops')} // Show DevOps window
+                 onManageDeployments={() => toggleWindowVisibility('devops')} // Show DevOps window
+                 onConfigureHosting={() => toggleWindowVisibility('devops')} // Show DevOps window
+                 onShowLanguageEnv={() => toggleWindowVisibility('languageEnv')}
+                 onShowSettings={() => toggleWindowVisibility('settings')}
+                 onShowWelcome={() => toggleWindowVisibility('welcome')}
+                 onShowDocs={() => handleGenericAction('Open Documentation')} // Likely opens external URL
+                 onShowApiDocs={() => handleGenericAction('Open Plugin API Docs')} // Likely opens external URL
+                 onShowVoiceGestureCommands={() => toggleWindowVisibility('welcome')} // Show in welcome guide or dedicated window?
+                 onCheckForUpdates={() => handleGenericAction('Check for Updates')}
                  onShowAbout={() => toggleWindowVisibility('about')}
              />
 
@@ -879,7 +880,8 @@ export default function Home() {
                         title: getWindowName(id),
                         onClose: () => toggleWindowVisibility(id),
                         onMinimize: () => minimizeWindow(id),
-                         style: { zIndex: windowZIndices[id] || 10 } // Use stored z-index
+                         style: { zIndex: windowZIndices[id] || 10 }, // Use stored z-index
+                        isMinimized: minimizedWindows.includes(id) // Pass minimized state
                     };
 
                     // Add more complex windows here
@@ -1407,7 +1409,7 @@ export default function Home() {
                         </button>
                     ))}
                     <Button variant="ghost" size="icon" className="retro-button !border-none !shadow-none" aria-label="Toggle Full Screen" onClick={toggleFullScreen}>
-                        <Maximize2 size={16} />
+                        <Fullscreen size={16} />
                     </Button>
                     <Button variant="ghost" size="icon" className="retro-button !border-none !shadow-none" aria-label="Settings" onClick={() => toggleWindowVisibility('settings')}>
                          <Settings size={16} />
@@ -1415,7 +1417,7 @@ export default function Home() {
                     <span>Retro IDE</span>
                 </div>
             </div>
-         
+         </div>
      );
  }
 
@@ -1558,7 +1560,7 @@ const RetroMenubar = ({
                         <MenubarShortcut>F11</MenubarShortcut>
                     </MenubarItem>
                      <MenubarSeparator />
-                     <MenubarItem onSelect={() => onShowWelcome()}>
+                     <MenubarItem onSelect={onShowWelcome}>
                         Show Welcome Guide
                     </MenubarItem>
                 </MenubarContent>
@@ -1770,3 +1772,5 @@ const RetroMenubar = ({
         </Menubar>
     );
 };
+
+    
