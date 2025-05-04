@@ -68,6 +68,20 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
                     { name: 'README.md', type: 'file', path: '/README.md' },
                     { name: 'package.json', type: 'file', path: '/package.json' },
                     { name: 'docker-compose.yml', type: 'file', path: '/docker-compose.yml' },
+                    { name: '.env', type: 'file', path: '/.env' },
+                     { name: 'k8s', type: 'folder', path: '/k8s', children: [
+                           { name: 'deployment.yaml', type: 'file', path: '/k8s/deployment.yaml' },
+                           { name: 'service.yaml', type: 'file', path: '/k8s/service.yaml' },
+                           { name: 'configmap.yaml', type: 'file', path: '/k8s/configmap.yaml' },
+                           { name: 'secret.yaml', type: 'file', path: '/k8s/secret.yaml' },
+                           { name: 'ingress.yaml', type: 'file', path: '/k8s/ingress.yaml' },
+                     ]},
+                     { name: 'nix', type: 'folder', path: '/nix', children: [
+                         { name: 'shell.nix', type: 'file', path: '/nix/shell.nix' }
+                     ]},
+                     { name: 'plugins', type: 'folder', path: '/plugins', children: [
+                         { name: 'plugin.schema.json', type: 'file', path: '/plugins/plugin.schema.json' }
+                     ]},
                     {
                         name: 'src', type: 'folder', path: '/src', isOpen: true, children: [
                             {
@@ -78,36 +92,58 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
                                 ]
                             },
                             {
-                                name: 'components', type: 'folder', path: '/src/components', children: [
-                                    { name: 'features', type: 'folder', path: '/src/components/features', children: [
+                                name: 'components', type: 'folder', path: '/src/components', isOpen: true, children: [
+                                    { name: 'features', type: 'folder', path: '/src/components/features', isOpen: true, children: [
                                           { name: 'ai-chat.tsx', type: 'file', path: '/src/components/features/ai-chat.tsx'},
                                           { name: 'code-editor.tsx', type: 'file', path: '/src/components/features/code-editor.tsx'},
+                                          { name: 'file-explorer.tsx', type: 'file', path: '/src/components/features/file-explorer.tsx'},
+                                          { name: 'terminal-logs.tsx', type: 'file', path: '/src/components/features/terminal-logs.tsx'},
+                                          { name: 'collaboration-panel.tsx', type: 'file', path: '/src/components/features/collaboration-panel.tsx'},
+                                          { name: 'plugin-manager.tsx', type: 'file', path: '/src/components/features/plugin-manager.tsx'},
                                      ] },
-                                     { name: 'layout', type: 'folder', path: '/src/components/layout', children: [
+                                     { name: 'layout', type: 'folder', path: '/src/components/layout', isOpen: true, children: [
                                           { name: 'retro-menubar.tsx', type: 'file', path: '/src/components/layout/retro-menubar.tsx'},
                                           { name: 'retro-window.tsx', type: 'file', path: '/src/components/layout/retro-window.tsx'},
+                                          { name: 'simple-dialog-content.tsx', type: 'file', path: '/src/components/layout/simple-dialog-content.tsx'},
                                      ] },
                                      { name: 'ui', type: 'folder', path: '/src/components/ui', children: [
                                           { name: 'button.tsx', type: 'file', path: '/src/components/ui/button.tsx'},
+                                          { name: 'input.tsx', type: 'file', path: '/src/components/ui/input.tsx'},
+                                          // Add other ui components if needed for context
                                      ] },
                                 ]
                             },
                             {
-                                name: 'lib', type: 'folder', path: '/src/lib', children: [
+                                name: 'lib', type: 'folder', path: '/src/lib', isOpen: true, children: [
                                     { name: 'utils.ts', type: 'file', path: '/src/lib/utils.ts' },
                                     { name: 'collaboration.ts', type: 'file', path: '/src/lib/collaboration.ts' },
                                     { name: 'secrets.ts', type: 'file', path: '/src/lib/secrets.ts' },
                                 ]
                              },
                              {
-                                name: 'ai', type: 'folder', path: '/src/ai', children: [
+                                name: 'ai', type: 'folder', path: '/src/ai', isOpen: true, children: [
                                      { name: 'agents', type: 'folder', path: '/src/ai/agents', children: [
-                                         { name: 'ollama-agent.ts', type: 'file', path: '/src/ai/agents/ollama-agent.ts'}
+                                         { name: 'ollama-agent.ts', type: 'file', path: '/src/ai/agents/ollama-agent.ts'},
+                                         { name: 'genkit-helpers.ts', type: 'file', path: '/src/ai/agents/genkit-helpers.ts'}
                                      ] },
-                                     { name: 'flows', type: 'folder', path: '/src/ai/flows' },
+                                     { name: 'flows', type: 'folder', path: '/src/ai/flows', children: [
+                                          { name: 'summarize-text.ts', type: 'file', path: '/src/ai/flows/summarize-text.ts'},
+                                     ] },
                                      { name: 'ai-instance.ts', type: 'file', path: '/src/ai/ai-instance.ts' },
+                                     { name: 'dev.ts', type: 'file', path: '/src/ai/dev.ts' },
                                 ]
                              },
+                             {
+                                name: 'hooks', type: 'folder', path: '/src/hooks', children: [
+                                     { name: 'use-toast.ts', type: 'file', path: '/src/hooks/use-toast.ts'},
+                                     { name: 'use-mobile.tsx', type: 'file', path: '/src/hooks/use-mobile.tsx'},
+                                ]
+                             },
+                             {
+                                 name: 'types', type: 'folder', path: '/src/types', children: [
+                                     { name: 'agent-types.ts', type: 'file', path: '/src/types/agent-types.ts' }
+                                 ]
+                             }
                         ]
                     },
                     {
@@ -115,6 +151,9 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
                             { name: 'ai-service', type: 'folder', path: '/services/ai-service'},
                             { name: 'collaboration-service', type: 'folder', path: '/services/collaboration-service'},
                             { name: 'secrets-service', type: 'folder', path: '/services/secrets-service'},
+                            { name: 'agent-coordinator', type: 'folder', path: '/services/agent-coordinator'},
+                            { name: 'observability-service', type: 'folder', path: '/services/observability-service'},
+                            // Add other services if listed
                         ]
                     },
                 ]
@@ -122,7 +161,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
              setLoading(false);
         }, 800); // Simulate 800ms load time
 
-    }, []);
+    }, [onFileSelect]); // Added onFileSelect as a dependency, although it likely won't change
 
     // Filter logic (basic contains check)
     const filterTree = (node: FileSystemNode): FileSystemNode | null => {
@@ -169,8 +208,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
         };
 
          const icon = node.type === 'folder'
-             ? node.isOpen ? <FolderOpen size={14} className="text-primary" /> : <Folder size={14} className="text-primary" />
-             : <Files size={14} className="text-muted-foreground" />;
+             ? node.isOpen ? <FolderOpen size={14} className="text-primary shrink-0" /> : <Folder size={14} className="text-primary shrink-0" />
+             : <Files size={14} className="text-muted-foreground shrink-0" />;
 
 
         return (
@@ -182,7 +221,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
                      title={node.path}
                  >
                      {icon}
-                     <span className="truncate">{node.name}</span>
+                     <span className="truncate flex-grow">{node.name}</span>
                  </div>
                  {/* Recursively render children only if the folder is open */}
                  {node.type === 'folder' && node.isOpen && node.children && (
@@ -218,5 +257,3 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
         </div>
     );
 };
-```
-    
