@@ -57,8 +57,9 @@ const MenubarTrigger = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <MenubarPrimitive.Trigger
     ref={ref}
+    // Apply the retro trigger class directly or via cn() if needed
     className={cn(
-      "flex cursor-default select-none items-center px-2 py-1 text-sm font-medium outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground", // Adjusted padding, removed rounded-sm
+      "retro-menu-trigger", // Use class from globals.css
       className
     )}
     {...props}
@@ -75,13 +76,14 @@ const MenubarSubTrigger = React.forwardRef<
   <MenubarPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground", // removed rounded-sm
+      "retro-menu-item", // Use retro-menu-item styling
+      "justify-between", // Ensure space for chevron
       inset && "pl-8",
       className
     )}
     {...props}
   >
-    {children}
+    <span className="flex items-center gap-2">{children}</span> {/* Wrap children to keep icon spacing */}
     <ChevronRight className="ml-auto h-4 w-4" />
   </MenubarPrimitive.SubTrigger>
 ))
@@ -94,7 +96,8 @@ const MenubarSubContent = React.forwardRef<
   <MenubarPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[8rem] overflow-hidden border bg-popover p-1 text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2", // removed rounded-md
+      "retro-menu-content", // Use class from globals.css
+      "z-50 min-w-[8rem] overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       className
     )}
     {...props}
@@ -117,7 +120,8 @@ const MenubarContent = React.forwardRef<
         alignOffset={alignOffset}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[12rem] overflow-hidden border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2", // removed rounded-md
+          "retro-menu-content", // Use class from globals.css
+          "z-50 min-w-[12rem] overflow-hidden data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           className
         )}
         {...props}
@@ -127,8 +131,6 @@ const MenubarContent = React.forwardRef<
 )
 MenubarContent.displayName = MenubarPrimitive.Content.displayName
 
-// Custom class for retro menu items
-const retroMenuItemBase = "relative flex cursor-default select-none items-center px-2 py-0.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground"; // Adjusted padding, removed rounded-sm, added hover/focus
 
 const MenubarItem = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Item>,
@@ -139,7 +141,7 @@ const MenubarItem = React.forwardRef<
   <MenubarPrimitive.Item
     ref={ref}
     className={cn(
-      retroMenuItemBase, // Use custom base class
+      "retro-menu-item group", // Use global class, add group for shortcut styling
       inset && "pl-8",
       className
     )}
@@ -155,7 +157,8 @@ const MenubarCheckboxItem = React.forwardRef<
   <MenubarPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", // removed rounded-sm
+       "retro-menu-item", // Use global class
+      "relative pl-8", // Ensure space for check
       className
     )}
     checked={checked}
@@ -178,7 +181,8 @@ const MenubarRadioItem = React.forwardRef<
   <MenubarPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", // removed rounded-sm
+      "retro-menu-item", // Use global class
+      "relative pl-8", // Ensure space for radio indicator
       className
     )}
     {...props}
@@ -202,7 +206,7 @@ const MenubarLabel = React.forwardRef<
   <MenubarPrimitive.Label
     ref={ref}
     className={cn(
-      "px-2 py-1.5 text-sm font-semibold",
+      "px-2 py-1.5 text-sm font-semibold", // Keep default label styling distinct from items
       inset && "pl-8",
       className
     )}
@@ -217,7 +221,8 @@ const MenubarSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <MenubarPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-muted", className)}
+    // Apply retro separator class directly
+    className={cn("retro-separator-h !my-0", className)} // Override margin if needed
     {...props}
   />
 ))
@@ -231,14 +236,15 @@ const MenubarShortcut = ({
     <span
       className={cn(
         "ml-auto text-xs tracking-widest text-muted-foreground",
-         "group-hover:text-primary-foreground group-focus:text-primary-foreground", // Adjust shortcut color on hover/focus
+        // Hover/focus styles are handled by the group selector in globals.css
+        "group-hover:text-primary-foreground group-focus:text-primary-foreground",
         className
       )}
       {...props}
     />
   )
 }
-MenubarShortcut.displayname = "MenubarShortcut"
+MenubarShortcut.displayName = "MenubarShortcut" // Corrected display name casing
 
 export {
   Menubar,
@@ -258,10 +264,4 @@ export {
   MenubarSub,
   MenubarShortcut,
 }
-
-// Add custom class to globals.css or here for MenubarItem styling
-/*
-.retro-menu-item {
-  @apply relative flex cursor-default select-none items-center px-2 py-0.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground;
-}
-*/
+```

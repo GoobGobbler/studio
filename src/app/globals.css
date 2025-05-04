@@ -2,66 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Using a system font stack for better readability in an IDE context, while UI elements provide the retro feel */
+/* Apply the pixel font using the CSS variable */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: var(--font-pixel), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
+
+/* Define the .font-pixel utility class */
+.font-pixel {
+  font-family: var(--font-pixel), monospace; /* Fallback to monospace */
+   /* Optional: Disable anti-aliasing for sharper pixels */
+   /* -webkit-font-smoothing: none; */
+   /* -moz-osx-font-smoothing: grayscale; */
+}
+
 
 @layer base {
   :root {
     /* Retro Theme - Inspired by Windows 3.1 / Mac System 7 */
-    /* Using a light gray as the base background, common in retro UIs */
     --background: 210 0% 92%; /* Light Gray */
     --foreground: 0 0% 0%; /* Black */
-
-    /* Cards/Windows use the same light gray background */
     --card: 210 0% 92%;
     --card-foreground: 0 0% 0%;
-
-    /* Popovers might retain a slightly different shade or match card */
     --popover: 210 0% 92%;
     --popover-foreground: 0 0% 0%;
-
-    /* Primary/Accent Color: Teal */
     --primary: 180 100% 25%; /* Teal (#008080) */
     --primary-foreground: 0 0% 100%; /* White */
-
-    /* Secondary elements could use a darker gray or the primary color */
     --secondary: 210 0% 85%; /* Slightly darker gray */
     --secondary-foreground: 0 0% 0%;
-
-    /* Muted text or elements */
     --muted: 210 0% 80%;
     --muted-foreground: 0 0% 40%; /* Darker Gray for muted text */
-
-    /* Accent color often matches primary in simpler themes */
     --accent: 180 100% 25%;
     --accent-foreground: 0 0% 100%;
-
-    /* Destructive actions */
     --destructive: 0 84.2% 60.2%; /* Default Red */
     --destructive-foreground: 0 0% 100%;
-
-    /* Borders for 3D effect */
     --border-light: 0 0% 100%; /* White for top/left highlight */
     --border-dark: 0 0% 40%; /* Dark gray for bottom/right shadow */
     --border-input: 0 0% 40%; /* Border for input elements */
-
     --input: 0 0% 100%; /* White background for inputs */
     --input-foreground: 0 0% 0%; /* Black text for inputs */
-
     --ring: 180 100% 25%; /* Teal for focus rings */
-
-    /* Charts - Maintain some contrast, adjust if needed */
     --chart-1: 180 80% 40%;
     --chart-2: 210 70% 50%;
     --chart-3: 0 60% 50%;
     --chart-4: 40 80% 50%;
     --chart-5: 270 70% 60%;
-
     --radius: 0rem; /* Sharp corners */
-
-    /* Sidebar specific adjustments (if needed, otherwise inherits) */
     --sidebar-background: 210 0% 88%; /* Slightly different gray */
     --sidebar-foreground: 0 0% 0%;
     --sidebar-primary: 180 100% 25%;
@@ -101,7 +86,6 @@ body {
     --chart-3: 0 50% 60%;
     --chart-4: 40 60% 60%;
     --chart-5: 270 50% 70%;
-
     --sidebar-background: 220 10% 18%;
     --sidebar-foreground: 0 0% 80%;
     --sidebar-primary: 180 70% 50%;
@@ -121,8 +105,6 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-  /* Remove anti-aliasing for a more pixelated text feel if desired */
-  /* body { -webkit-font-smoothing: none; -moz-osx-font-smoothing: grayscale; } */
 }
 
 @layer components {
@@ -135,27 +117,33 @@ body {
     @apply border-t-border-dark border-l-border-dark border-b-border-light border-r-border-light;
     box-shadow: inset -1px -1px 0px 0px hsl(var(--border-light)), inset 1px 1px 0px 0px hsl(var(--border-dark)); /* Inverted inner bevel */
     /* Optional: Slightly move text */
-    /* transform: translate(1px, 1px); */
+     transform: translate(1px, 1px);
   }
 
   /* Retro Window Styling */
   .retro-window {
     @apply bg-card border-2 border-b-border-dark border-r-border-dark border-t-border-light border-l-border-light flex flex-col;
      box-shadow: 1px 1px 0 1px hsl(var(--border-dark)), 2px 2px 0 1px hsl(var(--border-dark)); /* Simple drop shadow */
+     min-width: 150px; /* Ensure windows don't collapse */
+     min-height: 100px;
   }
   .retro-window-titlebar {
-    @apply bg-primary text-primary-foreground flex items-center justify-between px-2 py-0.5 text-sm font-bold cursor-default;
+    @apply bg-primary text-primary-foreground flex items-center justify-between px-2 py-0.5 text-sm font-bold; /* Removed cursor-default to allow grab cursor */
      /* Add a slight inner highlight/shadow if desired */
-     /* box-shadow: inset 1px 1px 0px 0px hsla(0, 0%, 100%, 0.5), inset -1px -1px 0px 0px hsla(0, 0%, 0%, 0.2); */
+      box-shadow: inset 1px 1px 0px 0px hsla(0, 0%, 100%, 0.5), inset -1px -1px 0px 0px hsla(0, 0%, 0%, 0.2);
+       user-select: none; /* Prevent text selection in title bar */
   }
    .retro-window-content {
-    @apply p-2 flex-grow;
+    @apply p-2 flex-grow bg-card; /* Ensure content area has card background */
   }
   .retro-window-control {
      @apply w-4 h-4 bg-card border-2 border-b-border-dark border-r-border-dark border-t-border-light border-l-border-light flex items-center justify-center font-mono text-xs font-bold;
+     box-shadow: inset 1px 1px 0px 0px hsl(var(--border-light)), inset -1px -1px 0px 0px hsl(var(--border-dark));
   }
    .retro-window-control:active {
       @apply border-t-border-dark border-l-border-dark border-b-border-light border-r-border-light;
+      box-shadow: inset -1px -1px 0px 0px hsl(var(--border-light)), inset 1px 1px 0px 0px hsl(var(--border-dark)); /* Inverted inner bevel */
+       transform: translate(1px, 1px);
    }
 
   /* Retro Input Styling */
@@ -172,6 +160,63 @@ body {
      @apply w-[2px] h-full border-l border-border-dark border-r border-border-light bg-transparent mx-1;
   }
 
+   /* Retro Menubar Item & Trigger Styling */
+   .retro-menu-trigger {
+       @apply px-2 py-0.5 text-sm h-6 focus:bg-primary focus:text-primary-foreground data-[state=open]:bg-primary data-[state=open]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground;
+       border-right: 1px solid hsl(var(--border-dark));
+       border-bottom: 1px solid hsl(var(--border-dark));
+       border-left: 1px solid hsl(var(--border-light));
+       border-top: 1px solid hsl(var(--border-light));
+       margin: 1px; /* Space for border */
+   }
+    .retro-menu-trigger[data-state=open] {
+        border-left: 1px solid hsl(var(--border-dark));
+        border-top: 1px solid hsl(var(--border-dark));
+        border-right: 1px solid hsl(var(--border-light));
+        border-bottom: 1px solid hsl(var(--border-light));
+        background-color: hsl(var(--muted)); /* Indicate open state subtly */
+    }
+
+   .retro-menu-content {
+       @apply retro-window !absolute !mt-0.5 !rounded-none !border-2 !p-0 min-w-[10rem];
+       box-shadow: 1px 1px 0 1px hsl(var(--border-dark)), 2px 2px 0 1px hsl(var(--border-dark)); /* Ensure consistent shadow */
+   }
+
+   .retro-menu-item {
+        @apply relative flex cursor-default select-none items-center px-2 py-0.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground;
+        gap: 0.5rem; /* Ensure icons align */
+    }
+     .retro-menu-item .lucide { /* Style icons within menu items */
+         width: 14px;
+         height: 14px;
+         margin-right: 0.25rem; /* Consistent spacing */
+     }
+      .retro-menu-item .menubǝar-shortcut { /* Adjust shortcut color on hover */
+          @apply group-hover:text-primary-foreground group-focus:text-primary-foreground;
+      }
+
+
+    /* Retro Tabs Styling */
+    .retro-tabs-list {
+       @apply inline-flex h-7 items-center justify-start rounded-none bg-card p-0 border-b-2 border-border-dark;
+    }
+    .retro-tab-trigger {
+        @apply inline-flex items-center justify-center whitespace-nowrap px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50;
+         border-right: 2px solid transparent; /* Default state */
+         border-bottom: 2px solid transparent;
+         border-left: 2px solid transparent;
+         border-top: 2px solid transparent;
+         margin-bottom: -2px; /* Overlap border */
+         background-color: hsl(var(--muted)); /* Default tab background */
+    }
+     .retro-tab-trigger[data-state=active] {
+         @apply text-foreground;
+         border-color: hsl(var(--border-light)) hsl(var(--border-dark)) transparent hsl(var(--border-light));
+         background-color: hsl(var(--card)); /* Active tab matches window */
+         z-index: 1; /* Bring active tab forward */
+     }
+
+
   /* Retro Scrollbar (Basic - Tailwind doesn't offer full pseudo-element styling) */
   /* Apply via className utilities where needed */
   .retro-scrollbar::-webkit-scrollbar {
@@ -181,11 +226,14 @@ body {
   .retro-scrollbar::-webkit-scrollbar-track {
     background: hsl(var(--muted)); /* Or use a repeating pattern */
     /* background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAPSURBVBhXY2CgDP///wMBhgAD/wH8/38BCgABAAAAAElFTkSuQmCC'); */
+     border-left: 1px solid hsl(var(--border-dark)); /* Add inner border */
+     border-top: 1px solid hsl(var(--border-dark));
   }
   .retro-scrollbar::-webkit-scrollbar-thumb {
     background-color: hsl(var(--card));
     border: 2px solid;
     border-color: hsl(var(--border-light)) hsl(var(--border-dark)) hsl(var(--border-dark)) hsl(var(--border-light));
+    min-height: 20px; /* Ensure thumb is visible */
   }
     .retro-scrollbar::-webkit-scrollbar-thumb:hover {
      background-color: hsl(var(--secondary));
@@ -197,14 +245,20 @@ body {
       display: block;
       height: 16px;
       width: 16px;
+       /* Add basic triangle symbols using background images (replace with actual symbols if needed) */
+      /* background-repeat: no-repeat;
+      background-position: center; */
   }
+   /* Add pseudo-elements for arrows if needed */
+   /* .retro-scrollbar::-webkit-scrollbar-button:vertical:decrement { background-image: url('up-arrow.png'); } */
+   /* .retro-scrollbar::-webkit-scrollbar-button:vertical:increment { background-image: url('down-arrow.png'); } */
+   /* .retro-scrollbar::-webkit-scrollbar-button:horizontal:decrement { background-image: url('left-arrow.png'); } */
+   /* .retro-scrollbar::-webkit-scrollbar-button:horizontal:increment { background-image: url('right-arrow.png'); } */
+
    .retro-scrollbar::-webkit-scrollbar-button:active {
       border-color: hsl(var(--border-dark)) hsl(var(--border-light)) hsl(var(--border-light)) hsl(var(--border-dark));
+       transform: translate(1px, 1px);
    }
-   /* Basic triangles for buttons - requires pseudo elements often */
-
-
-   /* Pixelated Font Class (Requires importing a pixel font) */
-   /* .font-pixel { font-family: 'YourPixelFont', monospace; } */
 
 }
+```
