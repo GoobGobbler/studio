@@ -14,7 +14,12 @@ interface Message {
     text: string;
 }
 
-export const AIChat = () => {
+interface AIChatProps {
+    getEditorContent: () => string; // Function to get current editor content
+}
+
+
+export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
     const { toast } = useToast();
     const [input, setInput] = React.useState('');
     const [messages, setMessages] = React.useState<Message[]>([
@@ -41,33 +46,52 @@ export const AIChat = () => {
             const lowerInput = currentInput.toLowerCase();
             if (lowerInput.startsWith("generate code:")) {
                 agentToCall = 'codeGenAgent';
-                payload = { prompt: lowerInput.substring("generate code:".length).trim() };
+                payload = { prompt: lowerInput.substring("generate code:".length).trim(), context: { code: getEditorContent() } }; // Add current code as context
             } else if (lowerInput.startsWith("explain:")) {
                 agentToCall = 'explainCodeAgent';
-                // TODO: Get selected code from editor state
-                const selectedCode = "// Placeholder: code to explain";
+                const selectedCode = getEditorContent(); // Use entire editor content for now
+                if (!selectedCode) {
+                     toast({ title: "Explain Code Error", description: "Editor content is empty.", variant: "destructive" });
+                     setIsGenerating(false);
+                     return;
+                }
                 payload = { code: selectedCode };
-                toast({ title: "Explain Code", description: "TODO: Get selected code from editor." });
             } else if (lowerInput.startsWith("refactor:")) {
-                 agentToCall = 'refactorAgent';
-                 const selectedCode = "// Placeholder: code to refactor";
+                agentToCall = 'refactorAgent';
+                const selectedCode = getEditorContent(); // Use entire editor content
+                 if (!selectedCode) {
+                      toast({ title: "Refactor Code Error", description: "Editor content is empty.", variant: "destructive" });
+                      setIsGenerating(false);
+                      return;
+                 }
                  payload = { code: selectedCode, instructions: lowerInput.substring("refactor:".length).trim() };
-                 toast({ title: "Refactor Code", description: "TODO: Get selected code from editor." });
             } else if (lowerInput.startsWith("test:")) {
-                 agentToCall = 'testGenAgent';
-                 const selectedCode = "// Placeholder: code to test";
+                agentToCall = 'testGenAgent';
+                 const selectedCode = getEditorContent(); // Use entire file content
+                 if (!selectedCode) {
+                      toast({ title: "Generate Tests Error", description: "Editor content is empty.", variant: "destructive" });
+                      setIsGenerating(false);
+                      return;
+                 }
                  payload = { code: selectedCode };
-                 toast({ title: "Generate Tests", description: "TODO: Get selected code/file context." });
             } else if (lowerInput.startsWith("docs:")) {
-                 agentToCall = 'docGenAgent';
-                 const selectedCode = "// Placeholder: code for docs";
+                agentToCall = 'docGenAgent';
+                 const selectedCode = getEditorContent(); // Use entire file content
+                 if (!selectedCode) {
+                      toast({ title: "Generate Docs Error", description: "Editor content is empty.", variant: "destructive" });
+                      setIsGenerating(false);
+                      return;
+                 }
                  payload = { code: selectedCode };
-                 toast({ title: "Generate Docs", description: "TODO: Get selected code/file context." });
             } else if (lowerInput.startsWith("fix:")) {
                  agentToCall = 'fixBugAgent';
-                 const selectedCode = "// Placeholder: code with bug";
+                 const selectedCode = getEditorContent(); // Use entire file content
+                 if (!selectedCode) {
+                      toast({ title: "Fix Bug Error", description: "Editor content is empty.", variant: "destructive" });
+                      setIsGenerating(false);
+                      return;
+                 }
                  payload = { code: selectedCode, description: lowerInput.substring("fix:".length).trim() };
-                 toast({ title: "Fix Bug", description: "TODO: Get selected code from editor." });
             } else if (lowerInput.startsWith("query knowledge:") || lowerInput.startsWith("ask:")) {
                  agentToCall = 'ragAgent';
                  payload = { prompt: lowerInput.substring(lowerInput.indexOf(':') + 1).trim() };
@@ -80,19 +104,22 @@ export const AIChat = () => {
 
             let aiResponseText: string;
             if (response.success) {
-                 // Extract text response, handling potential object results
-                aiResponseText = typeof response.result === 'string'
-                    ? response.result
-                    : response.result?.response || response.result?.completion || response.result?.summary || response.result?.explanation || response.result?.code || JSON.stringify(response.result, null, 2);
-
-                // TODO: Handle specific agent results more gracefully
-                // (e.g., don't just stringify code, potentially insert it or show diff)
-                if (agentToCall === 'codeGenAgent' || agentToCall === 'refactorAgent' || agentToCall === 'fixBugAgent' || agentToCall === 'testGenAgent') {
-                    aiResponseText = `\`\`\`\n${response.result?.code || response.result?.tests || 'Code/Test Result Placeholder'}\n\`\`\`\n(TODO: Insert into editor/display properly)`;
-                 }
+                // Extract text response, handling potential object results
+                if (typeof response.result === 'string') {
+                    aiResponseText = response.result;
+                } else if (response.result) {
+                    aiResponseText = response.result.response || response.result.completion || response.result.summary || response.result.explanation || JSON.stringify(response.result, null, 2);
+                     // Special handling for code results - show snippet and mention insertion
+                     if (response.result.code || response.result.tests) {
+                         const codeSnippet = (response.result.code || response.result.tests).substring(0, 150) + "...";
+                         aiResponseText = `\`\`\`\n${codeSnippet}\n\`\`\`\n(Code generated/modified - check editor/console)`;
+                     }
+                } else {
+                    aiResponseText = "Agent completed successfully but returned no specific result.";
+                }
 
              } else {
-                aiResponseText = `Agent Error (${response.agentUsed}): ${response.error || 'Unknown error'}`;
+                aiResponseText = `Agent Error (${response.agentUsed || agentToCall}): ${response.error || 'Unknown error'}`;
                 toast({ title: "AI Agent Error", description: aiResponseText, variant: "destructive" });
             }
 
