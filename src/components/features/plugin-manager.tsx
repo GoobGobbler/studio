@@ -5,74 +5,85 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { PackageOpen, Puzzle } from "lucide-react"; // Import Puzzle icon
 
-export const PluginManagerContent = () => {
+interface Plugin {
+    id: string;
+    name: string;
+    version: string;
+    description: string;
+    category: string;
+    installed?: boolean;
+    updateAvailable?: boolean;
+    // Add other fields like publisher, icon path, etc.
+}
+
+interface PluginManagerContentProps {
+    plugins: Plugin[]; // Expect plugins data as prop
+    loading: boolean;
+}
+
+export const PluginManagerContent: React.FC<PluginManagerContentProps> = ({ plugins = [], loading = false }) => {
     const { toast } = useToast();
-    // TODO: Fetch installed plugins from backend or local state
+    const [searchTerm, setSearchTerm] = React.useState('');
 
-    const handleInstall = (pluginName: string) => {
-         toast({ title: `Install Plugin: ${pluginName}`, description: "TODO: Implement installation logic via Marketplace/Backend." });
+    const handleInstall = (plugin: Plugin) => {
+         toast({ title: `Installing Plugin: ${plugin.name}`, description: "TODO: Implement installation logic via Marketplace/Backend." });
+         // Placeholder: update UI state (needs proper state management if props aren't refetched)
     }
-    const handleUninstall = (pluginName: string) => {
-        toast({ title: `Uninstall Plugin: ${pluginName}`, description: "TODO: Implement uninstallation logic.", variant: "destructive" });
+    const handleUninstall = (plugin: Plugin) => {
+        toast({ title: `Uninstalling Plugin: ${plugin.name}`, description: "TODO: Implement uninstallation logic.", variant: "destructive" });
+         // Placeholder: update UI state
     }
-     const handleUpdate = (pluginName: string) => {
-         toast({ title: `Update Plugin: ${pluginName}`, description: "TODO: Implement update logic." });
+     const handleUpdate = (plugin: Plugin) => {
+         toast({ title: `Updating Plugin: ${plugin.name}`, description: "TODO: Implement update logic." });
+          // Placeholder: update UI state
     }
 
+    const filteredPlugins = plugins.filter(plugin =>
+        plugin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        plugin.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        plugin.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="p-2 text-sm flex flex-col h-full">
-            <Input type="search" placeholder="Search installed plugins..." className="retro-input mb-2 h-7" aria-label="Search Plugins" />
+             <p className="mb-1 font-semibold flex items-center gap-1"><Puzzle size={14} />Plugin Manager</p>
+            <Input
+                type="search"
+                placeholder="Search installed & available plugins..."
+                className="retro-input mb-2 h-7"
+                aria-label="Search Plugins"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+             />
             <ScrollArea className="flex-grow retro-scrollbar border border-border-dark p-1 bg-white">
-                {/* Placeholder plugin list */}
-                <ul>
-                    <li className="mb-1 p-1 border border-transparent hover:border-border-dark flex flex-col">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <span className="font-semibold">Linter Pro v2.0</span> <span className="text-xs text-muted-foreground">(Code Quality)</span>
-                            </div>
-                            <div className="space-x-1">
-                                 <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleUpdate('Linter Pro')}>Update</Button>
-                                 <Button size="sm" variant="destructive" className="retro-button !py-0 !px-1" onClick={() => handleUninstall('Linter Pro')}>Uninstall</Button>
-                            </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">Enforces coding standards.</p>
-                    </li>
-                     <li className="mb-1 p-1 border border-transparent hover:border-border-dark flex flex-col">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <span className="font-semibold">Firebase Deployer v1.1</span> <span className="text-xs text-muted-foreground">(Deployment)</span>
-                            </div>
-                            <div className="space-x-1">
-                                 <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleInstall('Firebase Deployer')}>Install</Button>
-                            </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">One-click deploy to Firebase.</p>
-                    </li>
-                     <li className="mb-1 p-1 border border-transparent hover:border-border-dark flex flex-col">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <span className="font-semibold">Retro Theme v1.0</span> <span className="text-xs text-muted-foreground">(Theme)</span>
-                            </div>
-                            <div className="space-x-1">
-                                 <Button size="sm" variant="destructive" className="retro-button !py-0 !px-1" onClick={() => handleUninstall('Retro Theme')}>Uninstall</Button>
-                            </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">The classic look.</p>
-                    </li>
-                     <li className="mb-1 p-1 border border-transparent hover:border-border-dark flex flex-col">
-                         <div className="flex justify-between items-center">
-                            <div>
-                                <span className="font-semibold">AI Security Scanner v0.9</span> <span className="text-xs text-muted-foreground">(Security)</span>
-                            </div>
-                            <div className="space-x-1">
-                                 <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleInstall('AI Security Scanner')}>Install</Button>
-                            </div>
-                         </div>
-                         <p className="text-xs text-muted-foreground mt-0.5">LLM-powered vulnerability detection.</p>
-                     </li>
-                </ul>
+                 {loading ? <p>Loading plugins...</p> : (
+                     filteredPlugins.length > 0 ? (
+                         <ul>
+                            {filteredPlugins.map(plugin => (
+                                 <li key={plugin.id} className="mb-1 p-1 border border-transparent hover:border-border-dark flex justify-between items-start">
+                                     <div>
+                                         <span className="font-semibold">{plugin.name} v{plugin.version}</span> <span className="text-xs text-muted-foreground">({plugin.category})</span>
+                                         {plugin.installed && <span className="text-xs text-green-600 ml-1">(Installed)</span>}
+                                         {plugin.updateAvailable && <span className="text-xs text-blue-600 ml-1">(Update Available)</span>}
+                                         <p className="text-xs text-muted-foreground mt-0.5">{plugin.description}</p>
+                                     </div>
+                                      <div className="space-x-1 shrink-0 pl-2">
+                                          {plugin.installed ? (
+                                              <>
+                                                 {plugin.updateAvailable && <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleUpdate(plugin)}>Update</Button>}
+                                                 <Button size="sm" variant="destructive" className="retro-button !py-0 !px-1" onClick={() => handleUninstall(plugin)}>Uninstall</Button>
+                                             </>
+                                         ) : (
+                                             <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleInstall(plugin)}>Install</Button>
+                                         )}
+                                      </div>
+                                  </li>
+                             ))}
+                         </ul>
+                     ) : <p className="text-muted-foreground p-2">No plugins found{searchTerm ? ' matching search.' : '.'}</p>
+                 )}
             </ScrollArea>
              {/* Footer actions might not be needed if install/uninstall is per-plugin */}
              {/* <div className="mt-2 pt-2 border-t border-border-dark flex justify-end">

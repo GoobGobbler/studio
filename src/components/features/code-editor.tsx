@@ -1,82 +1,84 @@
 'use client';
 
 import * as React from 'react';
-import { Textarea } from "@/components/ui/textarea"; // Use Textarea as placeholder
-// TODO: Import Monaco Editor and related types/bindings
-// import Editor, { Monaco } from '@monaco-editor/react';
-// import type * as monaco from 'monaco-editor';
+import { Textarea } from "@/components/ui/textarea"; // Keep Textarea as fallback
+import Editor, { Monaco, loader } from '@monaco-editor/react'; // Import Monaco Editor
+import type * as monacoEditor from 'monaco-editor'; // Import Monaco Editor types
+
+// --- Monaco Loader Configuration (Optional) ---
+// loader.config({ paths: { vs: '/path/to/monaco-editor/min/vs' } }); // Use if self-hosting Monaco
 
 interface CodeEditorProps {
-    initialValue?: string; // Keep initial value for uncontrolled component pattern
-    value?: string; // Controlled component value
+    initialValue?: string; // For initial uncontrolled value
+    value?: string; // Controlled value prop
     language?: string;
-    onEditorMount?: (editor: any, monacoInstance: any) => void; // Callback when Monaco mounts
-    onChange?: (value: string | undefined) => void; // Callback on content change
-    // Add other props as needed (theme, options)
+    onEditorMount?: (editor: monacoEditor.editor.IStandaloneCodeEditor, monacoInstance: typeof monacoEditor) => void; // Callback when Monaco mounts
+    onChange?: (value: string | undefined, event: monacoEditor.editor.IModelContentChangedEvent) => void; // Callback on content change
+    theme?: string; // Optional theme prop (e.g., 'vs-dark')
+    options?: monacoEditor.editor.IStandaloneEditorConstructionOptions; // Pass Monaco options
 }
 
 export const CodeEditor = ({
     initialValue,
     value, // Controlled value takes precedence
-    language = 'javascript',
+    language = 'plaintext', // Default to plaintext
     onEditorMount,
     onChange,
+    theme = 'vs-light', // Default theme
+    options = {}
 }: CodeEditorProps) => {
-    // Local state for the placeholder Textarea, reflects controlled or initial value
-    const [code, setCode] = React.useState(value ?? initialValue ?? `// Monaco Editor Placeholder\nconsole.log('Hello, QuonxCoder!');\n\n// MEMORY_TOKEN: example:console.log`);
+    const [isMonacoLoading, setIsMonacoLoading] = React.useState(true);
+    const [monacoError, setMonacoError] = React.useState<Error | null>(null);
 
-    // Update local state if controlled value prop changes
-    React.useEffect(() => {
-        if (value !== undefined) {
-            setCode(value);
-        }
-    }, [value]);
-
-    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
-        setCode(newValue); // Update local state for textarea
-        onChange?.(newValue); // Notify parent if onChange is provided
+    // Merge default options with passed options
+    const editorOptions: monacoEditor.editor.IStandaloneEditorConstructionOptions = {
+        minimap: { enabled: false },
+        fontSize: 13,
+        fontFamily: 'var(--font-mono), monospace', // Use CSS variable or fallback
+        wordWrap: 'on',
+        automaticLayout: true, // Adjust layout on container resize
+        scrollBeyondLastLine: false,
+        // Add accessibility options?
+        // Consider adding theme definition here if custom
+        ...options, // Allow overriding defaults
     };
 
-    // --- Monaco Editor Implementation (Commented Out) ---
-    /*
-    const handleEditorChange = (newValue: string | undefined, event: monaco.editor.IModelContentChangedEvent) => {
-        onChange?.(newValue);
-    };
-
+    // --- Monaco Editor Implementation ---
     return (
-        <div className="h-full w-full border border-input bg-white"> // Monaco needs a container with explicit size
-            <Editor
+        <div className="h-full w-full border border-input bg-white relative"> {/* Container needs explicit size */}
+             <Editor
                 height="100%" // Fill container height
                 language={language}
-                theme="vs-light" // Or a custom retro theme (needs definition)
-                value={value} // Use controlled value
-                defaultValue={initialValue} // Use initial value if value is undefined initially
-                onMount={onEditorMount} // Pass the mount handler
-                onChange={handleEditorChange} // Pass the change handler
-                options={{
-                    minimap: { enabled: false }, // Example option
-                    fontSize: 13,
-                    fontFamily: 'monospace', // Ensure monospaced font
-                    wordWrap: 'on', // Example: enable word wrap
-                    // Add more Monaco options
+                theme={theme} // Pass theme
+                value={value} // Use controlled value (Monaco handles it well)
+                defaultValue={initialValue} // Fallback for initial uncontrolled state
+                onMount={(editor, monaco) => {
+                    setIsMonacoLoading(false);
+                    onEditorMount?.(editor, monaco); // Call parent callback
                 }}
+                onChange={onChange} // Pass the change handler directly
+                options={editorOptions} // Pass merged options
+                loading={ // Custom loading indicator
+                    <div className="absolute inset-0 flex items-center justify-center bg-card text-muted-foreground text-sm">
+                        Loading Editor...
+                    </div>
+                }
+                // TODO: Error handling - Monaco's default error handling might suffice,
+                // or we can use onError prop if available/needed, or try-catch onMount.
             />
-        </div>
-    );
-    */
-
-    // --- Placeholder Textarea Implementation ---
-    return (
-        <div className="h-full w-full bg-white border border-input"> {/* Added border */}
-            <Textarea
-                value={code} // Use local state reflecting controlled/initial value
-                onChange={handleTextareaChange} // Use textarea-specific handler
-                placeholder="// Start coding... (Monaco Editor will replace this)"
-                className="retro-input flex-grow w-full h-full resize-none font-mono text-sm whitespace-pre !bg-white !text-black border-none focus-visible:!ring-0 !rounded-none p-1" // Adjusted styles
-                aria-label="Code Editor"
-                id="main-code-editor" // Add an ID for potential targeting
-            />
+            {/* Fallback Textarea if Monaco fails? Currently not implemented with react-monaco-editor easily */}
+            {/* {monacoError && (
+                 <div className="absolute inset-0 z-10 bg-destructive/80 p-4 text-destructive-foreground">
+                     <p>Error loading code editor:</p>
+                     <pre className="text-xs whitespace-pre-wrap">{monacoError.message}</pre>
+                     <Textarea
+                         value={value ?? initialValue ?? ""}
+                         readOnly // Make fallback read-only or basic editable
+                         className="retro-input flex-grow w-full h-full resize-none font-mono text-sm whitespace-pre !bg-white !text-black border-none focus-visible:!ring-0 !rounded-none p-1 mt-2"
+                         aria-label="Code Editor Fallback"
+                     />
+                 </div>
+             )} */}
         </div>
     );
 };

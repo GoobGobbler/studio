@@ -11,101 +11,117 @@ import { Terminal as TerminalIcon, FileCode, Cpu, ShieldCheck, BarChart3 } from 
 // import { FitAddon } from 'xterm-addon-fit';
 // import 'xterm/css/xterm.css';
 
-export const TerminalAndLogs = () => {
+interface TerminalAndLogsProps {
+    logStream: string[]; // Accept log stream as a prop
+}
+
+export const TerminalAndLogs = React.forwardRef<any, TerminalAndLogsProps>(({ logStream }, ref) => { // Forward ref
      const terminalContainerRef = React.useRef<HTMLDivElement>(null);
      const fitAddonRef = React.useRef<any>(null); // Ref for FitAddon instance
-     const [logs, setLogs] = React.useState<string[]>([]); // State to hold logs
+     // Removed local logs state, using prop instead
 
     // --- Effect for Terminal Initialization ---
     React.useEffect(() => {
-        if (terminalContainerRef.current /* && !terminalInstance */ ) { // Prevent re-initialization
-            // TODO: Initialize xterm.js
-            // const term = new Terminal({
-            //     cursorBlink: true,
-            //     fontFamily: 'monospace',
-            //     fontSize: 13,
-            //     theme: { background: '#000000', foreground: '#00FF00' } // Basic retro theme
-            // });
-            // const fitAddon = new FitAddon();
-            // fitAddonRef.current = fitAddon;
-            // term.loadAddon(fitAddon);
-            // term.open(terminalContainerRef.current);
-            // fitAddon.fit(); // Initial fit
+        // Ensure this runs only once or when dependencies change (like theme)
+        let terminalInstance: any = null; // Keep instance locally in effect scope
+        let resizeObserver: ResizeObserver | null = null;
 
-            // term.write('Welcome to QuonxTerm! (xterm.js Initialized)\r\n$ ');
+        if (terminalContainerRef.current && !terminalInstance) { // Check if already initialized
+            console.log("Initializing xterm.js...");
+            // Placeholder: Replace with actual xterm initialization when library is added
+            const mockTerm = {
+                write: (text: string) => {
+                     if (terminalContainerRef.current) {
+                         // Simple text append for placeholder
+                         const line = document.createElement('div');
+                         line.textContent = text.replace(/\r\n/g, '\n').replace(/\n/g, ''); // Basic line handling
+                         terminalContainerRef.current.appendChild(line);
+                         terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight; // Auto-scroll
+                     }
+                },
+                onData: (callback: (data: string) => void) => {
+                    // Mock input handling - maybe add an input field below?
+                    console.log("Mock Terminal: onData registered.");
+                },
+                loadAddon: (addon: any) => { console.log("Mock Terminal: Load addon", addon);},
+                open: (element: HTMLElement) => { console.log("Mock Terminal: Open"); },
+                dispose: () => { console.log("Mock Terminal: Dispose"); terminalInstance = null; }
+            };
+            const mockFitAddon = {
+                 fit: () => { console.log("Mock Terminal: Fit addon called.");}
+            };
 
-            // // Example: Handle input (send to backend WebSocket/service)
-            // term.onData(data => {
-            //     // Send data to backend shell process
-            //     console.log("Terminal Input:", data);
-            //     // For local echo: term.write(data);
-            // });
+            fitAddonRef.current = mockFitAddon;
+            mockTerm.loadAddon(mockFitAddon);
+            mockTerm.open(terminalContainerRef.current);
+            mockFitAddon.fit(); // Initial fit
 
-            // // Example: Handle output from backend
-            // // backendSocket.on('terminal-output', (output) => {
-            // //    term.write(output);
-            // // });
+            mockTerm.write('Welcome to QuonxTerm! (Placeholder)\r\n$ ');
 
-            // terminalInstance = term; // Store instance if needed outside effect
+            // Example: Handle input (send to backend WebSocket/service)
+            mockTerm.onData(data => {
+                console.log("Terminal Input (Placeholder):", data);
+                // Send data to backend shell process via WebSocket/API
+                // For local echo: mockTerm.write(data);
+            });
 
-             // Handle resize
-            const resizeObserver = new ResizeObserver(() => {
-                 fitAddonRef.current?.fit();
-             });
-             if (terminalContainerRef.current.parentElement) {
-                resizeObserver.observe(terminalContainerRef.current.parentElement);
+             // Example: Handle output from backend
+             // backendSocket.on('terminal-output', (output) => {
+             //    mockTerm.write(output);
+             // });
+
+            terminalInstance = mockTerm; // Store instance if needed outside effect
+            if (ref) { // Assign to forwarded ref if provided
+                 if (typeof ref === 'function') {
+                     ref(terminalInstance);
+                 } else {
+                     ref.current = terminalInstance;
+                 }
              }
 
+             // Handle resize
+             resizeObserver = new ResizeObserver(() => {
+                  fitAddonRef.current?.fit();
+              });
+              // Observe the parent of the container for size changes
+              const parentElement = terminalContainerRef.current?.parentElement;
+              if (parentElement) {
+                  resizeObserver.observe(parentElement);
+              } else {
+                  console.warn("Terminal container parent not found for resize observer.");
+              }
 
+            // Cleanup function
             return () => {
-                resizeObserver.disconnect();
-                // term.dispose();
-                // terminalInstance = null;
+                 console.log("Disposing xterm.js instance...");
+                 resizeObserver?.disconnect();
+                 terminalInstance?.dispose();
+                 if (ref) { // Clear forwarded ref
+                      if (typeof ref === 'function') {
+                          ref(null);
+                      } else {
+                          ref.current = null;
+                      }
+                 }
             };
         }
+        // If dependencies like theme are added, include them in the array below
     }, []); // Run once on mount
-
-
-     // --- Effect for Log Streaming ---
-    React.useEffect(() => {
-        // TODO: Connect to backend log stream (SSE or WebSocket)
-         console.log("TODO: Connect Logs panel to backend log stream.");
-         // Example using SSE (adjust URL and handling)
-        // const logSource = new EventSource('/api/proxy/observability/logs'); // Use proxy
-        // logSource.onmessage = (event) => {
-        //     setLogs(prevLogs => [...prevLogs, event.data]);
-        // };
-        // logSource.onerror = () => {
-        //     console.error("Log stream error or closed.");
-        //     setLogs(prev => [...prev, "[ERROR] Log stream disconnected."]);
-        //     logSource.close();
-        // };
-
-        // Placeholder logs
-        setLogs([
-             "[INFO] Application components loading...",
-             "[DEBUG][AI Service] Vector DB connection established.",
-             "[WARN][Agent Coordinator] Rate limit approaching for external API.",
-             "[ERROR][Collaboration] WebSocket disconnected unexpectedly.",
-             "[COLLAB] User 'RetroCoder' joined the session.",
-             "[SECRETS] Vault accessed for 'GITHUB_TOKEN'.",
-        ]);
-
-         return () => {
-            // logSource?.close();
-        };
-    }, []);
 
     // Scroll logs to bottom
     const logScrollAreaRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {
         if (logScrollAreaRef.current) {
-            const scrollElement = logScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollElement) {
-                scrollElement.scrollTop = scrollElement.scrollHeight;
+            // Find the viewport element within the ScrollArea component
+             const viewportElement = logScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            if (viewportElement) {
+                viewportElement.scrollTop = viewportElement.scrollHeight;
+            } else {
+                 // Fallback for direct scroll area element if Radix structure changes
+                 logScrollAreaRef.current.scrollTop = logScrollAreaRef.current.scrollHeight;
             }
         }
-    }, [logs]);
+    }, [logStream]); // Trigger scroll when logStream updates
 
 
     return (
@@ -113,20 +129,21 @@ export const TerminalAndLogs = () => {
             <TabsList className="retro-tabs-list shrink-0">
                 <TabsTrigger value="terminal" className="retro-tab-trigger"><TerminalIcon size={14} className="mr-1" />Terminal</TabsTrigger>
                 <TabsTrigger value="logs" className="retro-tab-trigger"><FileCode size={14} className="mr-1" />Logs</TabsTrigger>
-                 <TabsTrigger value="profiling" className="retro-tab-trigger"><Cpu size={14} className="mr-1" />Profiling</TabsTrigger>
-                 <TabsTrigger value="security" className="retro-tab-trigger"><ShieldCheck size={14} className="mr-1" />Security</TabsTrigger>
-                 <TabsTrigger value="dashboard" className="retro-tab-trigger"><BarChart3 size={14} className="mr-1" />Dashboard</TabsTrigger>
+                 {/* Keep other tabs as placeholders */}
+                 <TabsTrigger value="profiling" className="retro-tab-trigger" disabled><Cpu size={14} className="mr-1" />Profiling</TabsTrigger>
+                 <TabsTrigger value="security" className="retro-tab-trigger" disabled><ShieldCheck size={14} className="mr-1" />Security</TabsTrigger>
+                 <TabsTrigger value="dashboard" className="retro-tab-trigger" disabled><BarChart3 size={14} className="mr-1" />Dashboard</TabsTrigger>
             </TabsList>
 
             {/* Terminal Tab */}
             <TabsContent value="terminal" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-0">
-                 <div className="flex flex-col h-full bg-black border-t-2 border-border-dark">
+                 <div className="flex flex-col h-full bg-black text-[#00FF00] font-mono text-xs border-t-2 border-border-dark">
                      {/* Container for xterm.js */}
-                     <div ref={terminalContainerRef} id="terminal-container" className="flex-grow w-full h-full p-1">
-                         {/* xterm.js will attach here */}
+                     <div ref={terminalContainerRef} id="terminal-container" className="flex-grow w-full h-full p-1 overflow-y-auto">
+                         {/* xterm.js will attach here or placeholder content */}
                      </div>
-                     {/* Input might be handled directly by xterm.js, this can be removed */}
-                     {/* <Input type="text" placeholder="> (xterm.js handles input)" aria-label="Terminal Input" className="retro-input !bg-black !text-[#00FF00] font-mono text-xs !rounded-none !border-none !border-t-2 !border-t-[#555555] focus:!ring-0 h-6" disabled /> */}
+                     {/* Optional separate input if not handled by xterm */}
+                      {/* <Input type="text" placeholder="> Enter command..." aria-label="Terminal Input" className="retro-input !bg-black !text-[#00FF00] font-mono text-xs !rounded-none !border-none !border-t-2 !border-t-[#555555] focus:!ring-0 h-6 shrink-0" onKeyDown={handleTerminalInput} /> */}
                  </div>
             </TabsContent>
 
@@ -134,7 +151,7 @@ export const TerminalAndLogs = () => {
             <TabsContent value="logs" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-0">
                  <div className="flex flex-col h-full bg-card border-t-2 border-border-dark">
                      <ScrollArea ref={logScrollAreaRef} className="flex-grow retro-scrollbar p-1 font-mono text-xs bg-white">
-                         {logs.map((log, index) => (
+                         {logStream.map((log, index) => (
                             <p key={index} className="whitespace-pre-wrap">{log}</p>
                         ))}
                      </ScrollArea>
@@ -143,40 +160,31 @@ export const TerminalAndLogs = () => {
 
              {/* Profiling Tab */}
             <TabsContent value="profiling" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-2 text-sm">
-                 {/* TODO: Implement AI Profiling Panel - Fetch data from Observability Service */}
-                 <p className="font-semibold flex items-center gap-1"><Cpu size={14} />AI Profiling Panel</p>
-                 <p className="text-muted-foreground text-xs mb-2">Performance metrics and bundle analysis. (Connects to Observability Service)</p>
-                 <div className="h-32 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Chart Area Placeholder (Frontend Bundle)</div>
-                 <div className="h-32 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Chart Area Placeholder (Backend Traces)</div>
-                 <Button className="retro-button mt-2" size="sm" onClick={() => console.log("TODO: Trigger profiling analysis")}>Run Analysis</Button>
+                 <p className="font-semibold flex items-center gap-1"><Cpu size={14} />Profiling Panel (Placeholder)</p>
+                 <p className="text-muted-foreground text-xs mb-2">Performance metrics and bundle analysis.</p>
+                 <div className="h-32 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Chart Area Placeholder</div>
+                 <Button className="retro-button mt-2" size="sm" disabled>Run Analysis</Button>
             </TabsContent>
 
              {/* Security Tab */}
             <TabsContent value="security" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-2 text-sm">
-                 {/* TODO: Implement SAST/Dependency Scanning - Call Agent Coordinator */}
-                 <p className="font-semibold flex items-center gap-1"><ShieldCheck size={14} />Security Scanner</p>
-                 <p className="text-muted-foreground text-xs mb-1">SAST and dependency scan results. (Connects to Agent Coordinator/Observability)</p>
+                 <p className="font-semibold flex items-center gap-1"><ShieldCheck size={14} />Security Scanner (Placeholder)</p>
+                 <p className="text-muted-foreground text-xs mb-1">SAST and dependency scan results.</p>
                  <ScrollArea className="h-32 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
-                     {/* Display scan results dynamically */}
-                     <ul><li>[INFO] Scan initiated...</li>
-                         {/* Example results */}
-                         <li>[WARN] Dependency 'lodash' v4.17.20 has known CVE-2021-xxxxx.</li>
-                         <li>[LOW] Potential hardcoded secret in `config.js`.</li>
-                     </ul>
+                     <p>[INFO] Ready to scan.</p>
                  </ScrollArea>
-                 <Button className="retro-button mt-1" size="sm" onClick={() => console.log("TODO: Trigger SAST scan via agent coordinator")}>Scan Now</Button>
-                 <Button className="retro-button mt-1 ml-1" size="sm" variant="secondary" title="Attempt automated fix and create Pull Request (Planned)" onClick={() => console.log("TODO: Trigger Auto-Fix PR via agent coordinator")}>Auto-Fix PR</Button>
+                 <Button className="retro-button mt-1" size="sm" disabled>Scan Now</Button>
             </TabsContent>
 
              {/* Dashboard Tab */}
             <TabsContent value="dashboard" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-2 text-sm">
-                 {/* TODO: Implement Telemetry Dashboard with Charts - Fetch data from Observability Service */}
-                 <p className="font-semibold flex items-center gap-1"><BarChart3 size={14} />Telemetry Dashboard</p>
-                 <p className="text-muted-foreground text-xs mb-2">Errors, Performance, AI Usage. (Connects to Observability Service)</p>
+                 <p className="font-semibold flex items-center gap-1"><BarChart3 size={14} />Telemetry Dashboard (Placeholder)</p>
+                 <p className="text-muted-foreground text-xs mb-2">Errors, Performance, AI Usage.</p>
                  <div className="h-20 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Errors Chart Placeholder</div>
                  <div className="h-20 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Performance Chart Placeholder</div>
-                 <div className="h-20 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">AI Usage Chart Placeholder</div>
             </TabsContent>
         </Tabs>
     );
-};
+});
+
+TerminalAndLogs.displayName = "TerminalAndLogs"; // Add display name for forwardRef

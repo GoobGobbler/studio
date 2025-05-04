@@ -12,6 +12,7 @@ import type { AgentExecutionResponse } from '@/types/agent-types'; // Import sha
 interface Message {
     sender: 'User' | 'QuonxAI';
     text: string;
+    timestamp?: string; // Add timestamp for potential sorting/display
 }
 
 interface AIChatProps {
@@ -23,7 +24,7 @@ export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
     const { toast } = useToast();
     const [input, setInput] = React.useState('');
     const [messages, setMessages] = React.useState<Message[]>([
-        { sender: 'QuonxAI', text: 'How can I help you code today?' }
+        { sender: 'QuonxAI', text: 'How can I help you code today?', timestamp: new Date().toISOString() }
     ]);
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [selectedModel, setSelectedModel] = React.useState('llama'); // UI Indicator, backend handles actual model
@@ -31,7 +32,7 @@ export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
     const handleSend = async () => {
         if (!input.trim() || isGenerating) return;
 
-        const userMessage: Message = { sender: 'User', text: input };
+        const userMessage: Message = { sender: 'User', text: input, timestamp: new Date().toISOString() };
         setMessages(prev => [...prev, userMessage]);
         const currentInput = input;
         setInput('');
@@ -40,95 +41,132 @@ export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
         try {
             let agentToCall = 'chatAgent'; // Default agent
             let payload: any = { prompt: currentInput, context: { chatHistory: messages.slice(-10) } }; // Send last 10 messages as history
+            let agentTitle = "AI Chat"; // For toast messages
 
-            // --- Simple Intent Routing (Placeholder) ---
-            // More sophisticated routing should happen in the Agent Coordinator
-            const lowerInput = currentInput.toLowerCase();
-            if (lowerInput.startsWith("generate code:")) {
-                agentToCall = 'codeGenAgent';
-                payload = { prompt: lowerInput.substring("generate code:".length).trim(), context: { code: getEditorContent() } }; // Add current code as context
-            } else if (lowerInput.startsWith("explain:")) {
-                agentToCall = 'explainCodeAgent';
-                const selectedCode = getEditorContent(); // Use entire editor content for now
-                if (!selectedCode) {
-                     toast({ title: "Explain Code Error", description: "Editor content is empty.", variant: "destructive" });
+            // --- Simple Intent Routing (Refined) ---
+            const lowerInput = currentInput.toLowerCase().trim();
+            const editorCode = getEditorContent(); // Get editor content once
+
+             const matchKeyword = (keywords: string[]): string | null => {
+                 for (const keyword of keywords) {
+                     if (lowerInput.startsWith(keyword + ':') || lowerInput.startsWith(keyword + ' ')) {
+                         return lowerInput.substring(lowerInput.indexOf(keyword) + keyword.length + 1).trim();
+                     }
+                 }
+                 return null;
+             };
+
+             let matchedContent: string | null;
+
+            if ((matchedContent = matchKeyword(['generate code', 'create code', 'write code'])) !== null) {
+                 agentToCall = 'codeGenAgent';
+                 agentTitle = "Code Generation";
+                 payload = { prompt: matchedContent, context: { code: editorCode } };
+            } else if ((matchedContent = matchKeyword(['explain', 'describe'])) !== null) {
+                 agentToCall = 'explainCodeAgent';
+                 agentTitle = "Code Explanation";
+                 // Use matched content if user specifies what to explain, otherwise use editor code
+                 const codeToExplain = matchedContent || editorCode;
+                 if (!codeToExplain) {
+                     toast({ title: "Explain Code Error", description: "No code provided or found in editor.", variant: "destructive" });
                      setIsGenerating(false);
                      return;
-                }
-                payload = { code: selectedCode };
-            } else if (lowerInput.startsWith("refactor:")) {
-                agentToCall = 'refactorAgent';
-                const selectedCode = getEditorContent(); // Use entire editor content
-                 if (!selectedCode) {
-                      toast({ title: "Refactor Code Error", description: "Editor content is empty.", variant: "destructive" });
-                      setIsGenerating(false);
-                      return;
                  }
-                 payload = { code: selectedCode, instructions: lowerInput.substring("refactor:".length).trim() };
-            } else if (lowerInput.startsWith("test:")) {
-                agentToCall = 'testGenAgent';
-                 const selectedCode = getEditorContent(); // Use entire file content
-                 if (!selectedCode) {
-                      toast({ title: "Generate Tests Error", description: "Editor content is empty.", variant: "destructive" });
-                      setIsGenerating(false);
-                      return;
+                 payload = { context: { code: codeToExplain } }; // Pass code in context
+             } else if ((matchedContent = matchKeyword(['refactor', 'improve code'])) !== null) {
+                 agentToCall = 'refactorAgent';
+                 agentTitle = "Code Refactoring";
+                 if (!editorCode) {
+                     toast({ title: "Refactor Code Error", description: "Editor content is empty.", variant: "destructive" });
+                     setIsGenerating(false);
+                     return;
                  }
-                 payload = { code: selectedCode };
-            } else if (lowerInput.startsWith("docs:")) {
-                agentToCall = 'docGenAgent';
-                 const selectedCode = getEditorContent(); // Use entire file content
-                 if (!selectedCode) {
-                      toast({ title: "Generate Docs Error", description: "Editor content is empty.", variant: "destructive" });
-                      setIsGenerating(false);
-                      return;
+                 payload = { context: { code: editorCode }, instructions: matchedContent };
+            } else if ((matchedContent = matchKeyword(['test', 'generate tests', 'create tests'])) !== null) {
+                 agentToCall = 'testGenAgent';
+                 agentTitle = "Test Generation";
+                 if (!editorCode) {
+                     toast({ title: "Generate Tests Error", description: "Editor content is empty.", variant: "destructive" });
+                     setIsGenerating(false);
+                     return;
                  }
-                 payload = { code: selectedCode };
-            } else if (lowerInput.startsWith("fix:")) {
+                 payload = { context: { code: editorCode }, config: { framework: matchedContent } }; // Pass framework hint if provided
+            } else if ((matchedContent = matchKeyword(['docs', 'document', 'generate docs'])) !== null) {
+                 agentToCall = 'docGenAgent';
+                 agentTitle = "Documentation Generation";
+                  if (!editorCode) {
+                     toast({ title: "Generate Docs Error", description: "Editor content is empty.", variant: "destructive" });
+                     setIsGenerating(false);
+                     return;
+                 }
+                 payload = { context: { code: editorCode }, config: { format: matchedContent } }; // Pass format hint if provided
+            } else if ((matchedContent = matchKeyword(['fix', 'debug'])) !== null) {
                  agentToCall = 'fixBugAgent';
-                 const selectedCode = getEditorContent(); // Use entire file content
-                 if (!selectedCode) {
+                 agentTitle = "Bug Fixing";
+                  if (!editorCode) {
                       toast({ title: "Fix Bug Error", description: "Editor content is empty.", variant: "destructive" });
                       setIsGenerating(false);
                       return;
-                 }
-                 payload = { code: selectedCode, description: lowerInput.substring("fix:".length).trim() };
-            } else if (lowerInput.startsWith("query knowledge:") || lowerInput.startsWith("ask:")) {
+                  }
+                  payload = { context: { code: editorCode }, description: matchedContent };
+            } else if ((matchedContent = matchKeyword(['ask knowledge', 'query knowledge', 'search docs', 'ask'])) !== null) {
                  agentToCall = 'ragAgent';
-                 payload = { prompt: lowerInput.substring(lowerInput.indexOf(':') + 1).trim() };
-            }
-            // --- End Placeholder Routing ---
+                 agentTitle = "Knowledge Query";
+                 payload = { prompt: matchedContent };
+             } else if ((matchedContent = matchKeyword(['ingest knowledge', 'learn this', 'add knowledge'])) !== null) {
+                 agentToCall = 'ingestAgent';
+                 agentTitle = "Knowledge Ingestion";
+                 // Assume the content to ingest is the rest of the message
+                  payload = { text: matchedContent, source: "AI Chat Input" }; // Use matched content as text
+             }
+            // --- End Intent Routing ---
 
+            toast({ title: agentTitle, description: `Sending request to ${agentToCall}...` });
 
             // Call the Agent Coordinator via the client function
             const response: AgentExecutionResponse = await requestAgentExecution(agentToCall, payload);
 
             let aiResponseText: string;
             if (response.success) {
-                // Extract text response, handling potential object results
-                if (typeof response.result === 'string') {
-                    aiResponseText = response.result;
-                } else if (response.result) {
-                    aiResponseText = response.result.response || response.result.completion || response.result.summary || response.result.explanation || JSON.stringify(response.result, null, 2);
-                     // Special handling for code results - show snippet and mention insertion
-                     if (response.result.code || response.result.tests) {
-                         const codeSnippet = (response.result.code || response.result.tests).substring(0, 150) + "...";
-                         aiResponseText = `\`\`\`\n${codeSnippet}\n\`\`\`\n(Code generated/modified - check editor/console)`;
-                     }
-                } else {
-                    aiResponseText = "Agent completed successfully but returned no specific result.";
-                }
+                 // Extract text response, handling potential object results
+                 if (typeof response.result === 'string') {
+                     aiResponseText = response.result;
+                 } else if (response.result) {
+                     // Prioritize specific fields based on potential agent responses
+                     aiResponseText = response.result.response || response.result.explanation || response.result.summary || response.result.message || "";
+                     const codeResult = response.result.code || response.result.tests || response.result.files || response.result.documentation;
+
+                     if (codeResult) {
+                          // Prepend a note if code was generated/modified
+                          const codeNote = `(Code generated/modified by ${response.agentUsed} - check editor/console if not inserted automatically)\n`;
+                          // Show a snippet in chat
+                          const codeSnippet = typeof codeResult === 'string' ? codeResult.substring(0, 200) + (codeResult.length > 200 ? "..." : "") : JSON.stringify(codeResult).substring(0, 200) + "...";
+                          aiResponseText += `${aiResponseText ? '\n\n' : ''}${codeNote}\`\`\`\n${codeSnippet}\n\`\`\``;
+                      }
+
+                      // If still no text, stringify the whole result (fallback)
+                      if (!aiResponseText && !codeResult) {
+                          aiResponseText = `Agent ${response.agentUsed} completed: ${JSON.stringify(response.result, null, 2)}`;
+                      } else if (!aiResponseText && codeResult) {
+                          // Handle cases where only code is returned
+                          aiResponseText = `(Code generated/modified by ${response.agentUsed} - check editor/console if not inserted automatically)`;
+                      }
+
+                 } else {
+                     aiResponseText = `Agent ${response.agentUsed} completed successfully but returned no specific result.`;
+                 }
 
              } else {
                 aiResponseText = `Agent Error (${response.agentUsed || agentToCall}): ${response.error || 'Unknown error'}`;
                 toast({ title: "AI Agent Error", description: aiResponseText, variant: "destructive" });
             }
 
-            const aiMessage: Message = { sender: 'QuonxAI', text: aiResponseText };
+            const aiMessage: Message = { sender: 'QuonxAI', text: aiResponseText, timestamp: new Date().toISOString() };
             setMessages(prev => [...prev, aiMessage]);
 
         } catch (error: any) {
             console.error("AI Chat Error:", error);
-            const errorMessage: Message = { sender: 'QuonxAI', text: 'Sorry, an unexpected error occurred.' };
+            const errorMessage: Message = { sender: 'QuonxAI', text: 'Sorry, an unexpected error occurred while processing your request.', timestamp: new Date().toISOString() };
             setMessages(prev => [...prev, errorMessage]);
             toast({ title: "Chat Error", description: error.message || "Could not process AI request.", variant: "destructive" });
         } finally {
@@ -153,10 +191,14 @@ export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
     const messageScrollAreaRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {
         if (messageScrollAreaRef.current) {
-             const scrollElement = messageScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-             if (scrollElement) {
-                 scrollElement.scrollTop = scrollElement.scrollHeight;
-             }
+            // Find the viewport element within the ScrollArea component
+             const viewportElement = messageScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            if (viewportElement) {
+                viewportElement.scrollTop = viewportElement.scrollHeight;
+            } else {
+                 // Fallback for direct scroll area element if Radix structure changes
+                 messageScrollAreaRef.current.scrollTop = messageScrollAreaRef.current.scrollHeight;
+            }
         }
     }, [messages]);
 
@@ -165,23 +207,28 @@ export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
         <div className="flex flex-col h-full p-1">
             <ScrollArea ref={messageScrollAreaRef} className="flex-grow mb-1 retro-scrollbar border border-border-dark p-1 text-sm bg-white">
                 {messages.map((msg, index) => (
-                    <div key={index} className="mb-1 flex gap-2">
-                         <span className={`font-bold shrink-0 ${msg.sender === 'QuonxAI' ? 'text-primary' : 'text-foreground'}`}>
+                    <div key={index} className="mb-1 flex gap-2 group">
+                         <span className={`font-bold shrink-0 w-8 text-center ${msg.sender === 'QuonxAI' ? 'text-primary' : 'text-foreground'}`} title={msg.sender}>
                             {msg.sender === 'QuonxAI' ? <BrainCircuit size={14} className="inline" /> : " ইউ"} {/* User Icon Placeholder */}
-                            {/* {msg.sender}: */}
                          </span>
                          {/* Use pre-wrap to preserve formatting like code blocks */}
-                         <span className="whitespace-pre-wrap break-words">{msg.text}</span>
+                         <div className="flex-grow">
+                            <span className="whitespace-pre-wrap break-words">{msg.text}</span>
+                             {/* Optional: Show timestamp on hover */}
+                            {/* <span className="text-xs text-muted-foreground/50 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                            </span> */}
+                         </div>
                      </div>
                 ))}
                 {isGenerating && (
-                    <p className="text-muted-foreground animate-pulse flex items-center gap-1"><BrainCircuit size={14} />QuonxAI ({selectedModel}) is thinking...</p>
+                    <p className="text-muted-foreground animate-pulse flex items-center gap-1"><BrainCircuit size={14} />QuonxAI ({selectedModel}) is generating...</p>
                 )}
             </ScrollArea>
             <div className="flex items-center">
                 <Input
                     type="text"
-                    placeholder={`Ask ${selectedModel}... (e.g., generate code: ...)`}
+                    placeholder={`Ask ${selectedModel}... (e.g., generate code: ..., fix: ..., ask: ...)`}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -211,9 +258,9 @@ export const AIChat: React.FC<AIChatProps> = ({ getEditorContent }) => {
                 >
                      {/* Ollama is the primary target */}
                     <option value="llama">Llama (Ollama)</option>
-                    <option value="gemini" disabled>Gemini (Genkit - Placeholder)</option>
-                    <option value="claude" disabled>Claude (Placeholder)</option>
-                    <option value="gpt4o" disabled>GPT-4o (Placeholder)</option>
+                    <option value="gemini" disabled>Gemini (Genkit - Not Configured)</option>
+                    <option value="claude" disabled>Claude (Not Configured)</option>
+                    <option value="gpt4o" disabled>GPT-4o (Not Configured)</option>
                  </select>
             </div>
         </div>
