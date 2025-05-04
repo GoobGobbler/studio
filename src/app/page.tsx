@@ -611,6 +611,8 @@ const CollaborationPanel = () => {
 
 // --- Main Page Component ---
 export default function Home() {
+    // Error: Attempted to call useToast() from the server but useToast is on the client.
+    // Moved useToast inside the component body where it's allowed.
     const { toast } = useToast();
     const [visibleWindows, setVisibleWindows] = React.useState<Record<string, boolean>>({
         pluginManager: false,
@@ -875,21 +877,22 @@ export default function Home() {
                 {Object.entries(visibleWindows).map(([id, isVisible]) => {
                     if (!isVisible) return null;
 
-                    const windowProps = {
-                        key: id,
+                     // Extract key prop before spreading
+                     const { key: _key, ...restWindowProps } = {
+                        key: id, // Use the window ID as the key
                         title: getWindowName(id),
                         onClose: () => toggleWindowVisibility(id),
                         onMinimize: () => minimizeWindow(id),
-                         style: { zIndex: windowZIndices[id] || 10 }, // Use stored z-index
+                        style: { zIndex: windowZIndices[id] || 10 }, // Use stored z-index
                         isMinimized: minimizedWindows.includes(id) // Pass minimized state
                     };
 
                     // Add more complex windows here
                      switch (id) {
                          case 'pluginManager':
-                            return <RetroWindow {...windowProps} className="w-80 h-96" initialPosition={{ top: '20%', left: '30%' }}><PluginManagerContent /></RetroWindow>;
+                            return <RetroWindow key={id} {...restWindowProps} className="w-80 h-96" initialPosition={{ top: '20%', left: '30%' }}><PluginManagerContent /></RetroWindow>;
                          case 'openFile':
-                             return <RetroWindow {...windowProps} className="w-96 h-auto" initialPosition={{ top: '30%', left: '35%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-96 h-auto" initialPosition={{ top: '30%', left: '35%' }}>
                                  <div className="p-4 flex flex-col gap-2">
                                      <p className="text-sm">Select a file to open:</p>
                                      <Input type="file" className="retro-input text-xs h-8" />
@@ -900,7 +903,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                           case 'openFolder':
-                             return <RetroWindow {...windowProps} className="w-96 h-auto" initialPosition={{ top: '35%', left: '40%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-96 h-auto" initialPosition={{ top: '35%', left: '40%' }}>
                                   <div className="p-4 flex flex-col gap-2">
                                       <p className="text-sm">Select a folder to open:</p>
                                       <Input type="text" placeholder="Enter folder path or browse..." className="retro-input h-7 text-xs" />
@@ -911,7 +914,7 @@ export default function Home() {
                                   </div>
                               </RetroWindow>;
                          case 'saveAs':
-                             return <RetroWindow {...windowProps} className="w-96 h-auto" initialPosition={{ top: '40%', left: '45%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-96 h-auto" initialPosition={{ top: '40%', left: '45%' }}>
                                  <div className="p-4 flex flex-col gap-2">
                                      <Label htmlFor="save-as-input" className="text-sm">Save As:</Label>
                                      <Input id="save-as-input" type="text" defaultValue="untitled.js" className="retro-input h-7 text-xs" />
@@ -922,7 +925,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'manageSecrets':
-                             return <RetroWindow {...windowProps} className="w-[400px] h-[300px]" initialPosition={{ top: '15%', left: '50%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[400px] h-[300px]" initialPosition={{ top: '15%', left: '50%' }}>
                                  <div className="w-full h-full bg-card p-2 text-sm">
                                      <p className="mb-1">Project Secrets:</p>
                                      <ScrollArea className="h-32 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
@@ -939,7 +942,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                         case 'configureVault':
-                             return <RetroWindow {...windowProps} className="w-80 h-auto" initialPosition={{ top: '20%', left: '55%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-80 h-auto" initialPosition={{ top: '20%', left: '55%' }}>
                                   <div className="p-4 flex flex-col gap-2">
                                      <p className="text-sm font-semibold mb-2">Configure Secrets Vault</p>
                                       {/* Add Vault config options */}
@@ -958,7 +961,7 @@ export default function Home() {
                                   </div>
                               </RetroWindow>;
                          case 'projectVars':
-                            return <RetroWindow {...windowProps} className="w-[450px] h-[350px]" initialPosition={{ top: '25%', left: '30%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-[450px] h-[350px]" initialPosition={{ top: '25%', left: '30%' }}>
                                 <div className="w-full h-full bg-card p-2 text-sm">
                                     <p className="mb-1 font-semibold">Project Environment Variables</p>
                                     <ScrollArea className="h-48 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
@@ -975,7 +978,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                          case 'accountVars':
-                             return <RetroWindow {...windowProps} className="w-[450px] h-[350px]" initialPosition={{ top: '30%', left: '35%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[450px] h-[350px]" initialPosition={{ top: '30%', left: '35%' }}>
                                 <div className="w-full h-full bg-card p-2 text-sm">
                                     <p className="mb-1 font-semibold">Account Environment Variables</p>
                                     <p className="text-xs text-muted-foreground mb-2">These apply across all your projects.</p>
@@ -993,7 +996,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                          case 'findReplace':
-                             return <RetroWindow {...windowProps} className="w-80 h-auto" initialPosition={{ top: '10%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-80 h-auto" initialPosition={{ top: '10%', left: '60%' }}>
                                  <div className="p-2 flex flex-col gap-1">
                                      <div className="flex gap-1 items-center">
                                          <Label htmlFor="find-input" className="text-xs w-12 shrink-0">Find:</Label>
@@ -1011,7 +1014,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'commandPalette':
-                             return <RetroWindow {...windowProps} className="w-[500px] h-auto" initialPosition={{ top: '10%', left: '30%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-auto" initialPosition={{ top: '10%', left: '30%' }}>
                                  <div className="p-1">
                                      <Input placeholder="Enter command..." className="retro-input h-7 w-full mb-1" />
                                      <ScrollArea className="h-48 retro-scrollbar border border-border-dark bg-white text-sm">
@@ -1025,7 +1028,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                           case 'marketplace':
-                             return <RetroWindow {...windowProps} title="Plugin Marketplace" className="w-[600px] h-[450px]" initialPosition={{ top: '15%', left: '25%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} title="Plugin Marketplace" className="w-[600px] h-[450px]" initialPosition={{ top: '15%', left: '25%' }}>
                                  <div className="p-2 text-sm flex flex-col h-full">
                                      <Input type="search" placeholder="Search marketplace..." className="retro-input mb-2 h-7" aria-label="Search Plugins"/>
                                      <ScrollArea className="flex-grow retro-scrollbar border border-border-dark p-1 bg-white">
@@ -1051,7 +1054,7 @@ export default function Home() {
                                  </div>
                               </RetroWindow>;
                          case 'installVsix':
-                            return <RetroWindow {...windowProps} className="w-96 h-auto" initialPosition={{ top: '45%', left: '50%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-96 h-auto" initialPosition={{ top: '45%', left: '50%' }}>
                                 <div className="p-4 flex flex-col gap-2">
                                     <p className="text-sm">Select a .vsix file to install:</p>
                                     <Input type="file" accept=".vsix" className="retro-input text-xs h-8" />
@@ -1062,7 +1065,7 @@ export default function Home() {
                                   </div>
                               </RetroWindow>;
                          case 'manageWorkflows':
-                             return <RetroWindow {...windowProps} className="w-[500px] h-[400px]" initialPosition={{ top: '20%', left: '45%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-[400px]" initialPosition={{ top: '20%', left: '45%' }}>
                                  <div className="w-full h-full bg-card p-2 text-sm">
                                     <p className="mb-1 font-semibold">Manage YAML Workflows</p>
                                      <ScrollArea className="h-64 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
@@ -1079,7 +1082,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                         case 'generateCode':
-                            return <RetroWindow {...windowProps} className="w-[400px] h-auto" initialPosition={{ top: '25%', left: '50%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-[400px] h-auto" initialPosition={{ top: '25%', left: '50%' }}>
                                 <div className="p-2 flex flex-col gap-2">
                                    <Label htmlFor="gen-code-prompt">Prompt:</Label>
                                    <Textarea id="gen-code-prompt" placeholder="e.g., Create a React component for a loading spinner" className="retro-input h-24 text-xs"/>
@@ -1087,7 +1090,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                         case 'refactorCode':
-                             return <RetroWindow {...windowProps} className="w-[450px] h-auto" initialPosition={{ top: '30%', left: '50%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[450px] h-auto" initialPosition={{ top: '30%', left: '50%' }}>
                                  <div className="p-2 flex flex-col gap-2">
                                     <p className="text-sm font-semibold">Refactor Selected Code</p>
                                     <p className="text-xs text-muted-foreground">AI will attempt to refactor the code currently selected in the editor.</p>
@@ -1097,7 +1100,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'generateTests':
-                             return <RetroWindow {...windowProps} className="w-[400px] h-auto" initialPosition={{ top: '35%', left: '50%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[400px] h-auto" initialPosition={{ top: '35%', left: '50%' }}>
                                   <div className="p-2 flex flex-col gap-2">
                                      <p className="text-sm font-semibold">Generate Unit Tests</p>
                                      <p className="text-xs text-muted-foreground">Select the scope for test generation based on the current file or selection.</p>
@@ -1112,7 +1115,7 @@ export default function Home() {
                                  </div>
                               </RetroWindow>;
                         case 'generateDocs':
-                             return <RetroWindow {...windowProps} className="w-[400px] h-auto" initialPosition={{ top: '40%', left: '50%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[400px] h-auto" initialPosition={{ top: '40%', left: '50%' }}>
                                  <div className="p-2 flex flex-col gap-2">
                                      <p className="text-sm font-semibold">Generate Documentation</p>
                                      <p className="text-xs text-muted-foreground">Generate docstrings or comments for the selected code or current file.</p>
@@ -1128,7 +1131,7 @@ export default function Home() {
                                  </div>
                               </RetroWindow>;
                         case 'fixBug':
-                            return <RetroWindow {...windowProps} className="w-[450px] h-auto" initialPosition={{ top: '45%', left: '50%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-[450px] h-auto" initialPosition={{ top: '45%', left: '50%' }}>
                                 <div className="p-2 flex flex-col gap-2">
                                     <p className="text-sm font-semibold">Fix Bug with AI</p>
                                     <p className="text-xs text-muted-foreground">Describe the bug, and AI will try to fix it in the selected code.</p>
@@ -1138,7 +1141,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                          case 'scaffoldAgent':
-                             return <RetroWindow {...windowProps} className="w-[500px] h-auto" initialPosition={{ top: '50%', left: '50%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-auto" initialPosition={{ top: '50%', left: '50%' }}>
                                   <div className="p-2 flex flex-col gap-2">
                                     <p className="text-sm font-semibold">Scaffold AI Agent</p>
                                     <p className="text-xs text-muted-foreground">Bootstrap a new AI agent with basic structure and tooling.</p>
@@ -1150,7 +1153,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                         case 'queryKnowledge':
-                             return <RetroWindow {...windowProps} className="w-[450px] h-auto" initialPosition={{ top: '55%', left: '50%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[450px] h-auto" initialPosition={{ top: '55%', left: '50%' }}>
                                 <div className="p-2 flex flex-col gap-2">
                                     <p className="text-sm font-semibold">Query Knowledge Base</p>
                                     <p className="text-xs text-muted-foreground">Ask questions about the ingested knowledge. AI will try to find relevant info.</p>
@@ -1160,7 +1163,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                          case 'ingestKnowledge':
-                            return <RetroWindow {...windowProps} className="w-[500px] h-auto" initialPosition={{ top: '60%', left: '50%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-auto" initialPosition={{ top: '60%', left: '50%' }}>
                                  <div className="p-2 flex flex-col gap-2">
                                      <p className="text-sm font-semibold">Ingest Knowledge into AI</p>
                                      <p className="text-xs text-muted-foreground">Feed data to the AI to improve its understanding. (Vector DB/RAG)</p>
@@ -1170,7 +1173,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'manageKnowledge':
-                              return <RetroWindow {...windowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '65%', left: '50%' }}>
+                              return <RetroWindow key={id} {...restWindowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '65%', left: '50%' }}>
                                  <div className="p-2 text-sm flex flex-col h-full">
                                       <p className="font-semibold">Manage Knowledge Base</p>
                                       <ScrollArea className="flex-grow retro-scrollbar border border-border-dark p-1 bg-white">
@@ -1186,7 +1189,7 @@ export default function Home() {
                                  </div>
                               </RetroWindow>;
                          case 'configureOllama':
-                             return <RetroWindow {...windowProps} className="w-80 h-auto" initialPosition={{ top: '25%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-80 h-auto" initialPosition={{ top: '25%', left: '60%' }}>
                                    <div className="p-4 flex flex-col gap-2">
                                        <p className="text-sm font-semibold">Configure Ollama Integration</p>
                                        <p className="text-xs text-muted-foreground">Ollama host and model settings for local AI.</p>
@@ -1201,7 +1204,7 @@ export default function Home() {
                                    </div>
                               </RetroWindow>;
                           case 'fineTuneModel':
-                            return <RetroWindow {...windowProps} className="w-[500px] h-auto" initialPosition={{ top: '30%', left: '60%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-auto" initialPosition={{ top: '30%', left: '60%' }}>
                                   <div className="p-2 flex flex-col gap-2">
                                       <p className="text-sm font-semibold">Fine-Tune AI Model</p>
                                       <p className="text-xs text-muted-foreground">Customize an AI model with your own data for specialized tasks.</p>
@@ -1211,7 +1214,7 @@ export default function Home() {
                                   </div>
                               </RetroWindow>;
                          case 'configureVoiceGesture':
-                             return <RetroWindow {...windowProps} className="w-[400px] h-auto" initialPosition={{ top: '35%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[400px] h-auto" initialPosition={{ top: '35%', left: '60%' }}>
                                     <div className="p-2 flex flex-col gap-2">
                                         <p className="text-sm font-semibold">Configure Voice/Gesture Control</p>
                                         <p className="text-xs text-muted-foreground">Assign voice commands and gestures to editor actions.</p>
@@ -1223,7 +1226,7 @@ export default function Home() {
                                     </div>
                                 </RetroWindow>;
                          case 'profiling':
-                             return <RetroWindow {...windowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '40%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '40%', left: '60%' }}>
                                  <div className="p-2 flex flex-col h-full">
                                      <p className="font-semibold">Performance Profiling</p>
                                      <p className="text-xs text-muted-foreground">Analyze performance bottlenecks and optimize your code.</p>
@@ -1236,7 +1239,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                         case 'security':
-                            return <RetroWindow {...windowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '45%', left: '60%' }}>
+                            return <RetroWindow key={id} {...restWindowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '45%', left: '60%' }}>
                                 <div className="p-2 flex flex-col h-full">
                                     <p className="font-semibold">Security Analysis</p>
                                     <p className="text-xs text-muted-foreground">Scan for vulnerabilities and insecure code patterns.</p>
@@ -1248,7 +1251,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                          case 'telemetry':
-                             return <RetroWindow {...windowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '50%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[550px] h-[400px]" initialPosition={{ top: '50%', left: '60%' }}>
                                 <div className="p-2 flex flex-col h-full">
                                     <p className="font-semibold">Telemetry Dashboard</p>
                                     <p className="text-xs text-muted-foreground">Visualize application metrics, errors, and usage patterns.</p>
@@ -1260,7 +1263,7 @@ export default function Home() {
                                 </div>
                             </RetroWindow>;
                          case 'debugger':
-                             return <RetroWindow {...windowProps} className="w-[600px] h-[450px]" initialPosition={{ top: '55%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[600px] h-[450px]" initialPosition={{ top: '55%', left: '60%' }}>
                                  <div className="p-2 text-sm flex flex-col h-full">
                                      <p className="font-semibold">Debugger</p>
                                      <p className="text-xs text-muted-foreground">Interactive code debugging with breakpoints, call stack, and variable inspection.</p>
@@ -1271,7 +1274,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'git':
-                             return <RetroWindow {...windowProps} className="w-[500px] h-[400px]" initialPosition={{ top: '60%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-[400px]" initialPosition={{ top: '60%', left: '60%' }}>
                                  <div className="p-2 text-sm flex flex-col h-full">
                                       <p className="font-semibold">Git</p>
                                       <Tabs defaultValue="commit" className="flex flex-col h-full">
@@ -1299,7 +1302,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'devops':
-                             return <RetroWindow {...windowProps} className="w-[500px] h-[400px]" initialPosition={{ top: '65%', left: '60%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-[400px]" initialPosition={{ top: '65%', left: '60%' }}>
                                  <div className="p-2 text-sm flex flex-col h-full">
                                       <p className="font-semibold">DevOps</p>
                                       <Tabs defaultValue="iac" className="flex flex-col h-full">
@@ -1330,7 +1333,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'languageEnv':
-                             return <RetroWindow {...windowProps} className="w-[450px] h-[350px]" initialPosition={{ top: '30%', left: '35%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[450px] h-[350px]" initialPosition={{ top: '30%', left: '35%' }}>
                                  <div className="w-full h-full bg-card p-2 text-sm">
                                      <p className="mb-1 font-semibold">Language Environment</p>
                                      <p className="text-xs text-muted-foreground mb-2">Manage language-specific settings and dependencies.</p>
@@ -1341,7 +1344,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'settings':
-                             return <RetroWindow {...windowProps} className="w-[600px] h-[450px]" initialPosition={{ top: '35%', left: '30%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[600px] h-[450px]" initialPosition={{ top: '35%', left: '30%' }}>
                                  <div className="p-2 text-sm flex flex-col h-full">
                                      <p className="font-semibold">Settings</p>
                                       <Tabs defaultValue="editor" className="flex flex-col h-full">
@@ -1367,7 +1370,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          case 'welcome':
-                             return <RetroWindow {...windowProps} className="w-[500px] h-[350px]" initialPosition={{ top: '40%', left: '30%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[500px] h-[350px]" initialPosition={{ top: '40%', left: '30%' }}>
                                   <div className="p-2 text-sm">
                                      <p className="font-semibold">Welcome to Retro IDE</p>
                                       <p className="mt-1">Get started with these resources:</p>
@@ -1379,7 +1382,7 @@ export default function Home() {
                                   </div>
                              </RetroWindow>;
                          case 'about':
-                             return <RetroWindow {...windowProps} className="w-[400px] h-[300px]" initialPosition={{ top: '45%', left: '30%' }}>
+                             return <RetroWindow key={id} {...restWindowProps} className="w-[400px] h-[300px]" initialPosition={{ top: '45%', left: '30%' }}>
                                  <div className="p-2 text-sm">
                                      <p className="font-semibold">About Retro IDE</p>
                                      <p className="mt-1">Version: 0.5.0</p>
@@ -1388,7 +1391,7 @@ export default function Home() {
                                  </div>
                              </RetroWindow>;
                          default:
-                            return <RetroWindow {...windowProps} className="w-64 h-48" initialPosition={{ top: '50%', left: '50%' }}>{id}</RetroWindow>;
+                            return <RetroWindow key={id} {...restWindowProps} className="w-64 h-48" initialPosition={{ top: '50%', left: '50%' }}>{id}</RetroWindow>;
                      }
                  })}
 
@@ -1772,5 +1775,3 @@ const RetroMenubar = ({
         </Menubar>
     );
 };
-
-    
