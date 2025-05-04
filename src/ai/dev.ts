@@ -1,1 +1,3 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/summarize-code-comments.ts';
+import '@/ai/flows/generate-code-from-prompt.ts';
+import '@/ai/flows/explain-selected-code.ts';

@@ -18,8 +18,8 @@ const Separator = React.forwardRef<
       decorative={decorative}
       orientation={orientation}
       className={cn(
-        "shrink-0 bg-border",
-        orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
+        // Use retro separator classes instead of default shadcn
+        orientation === "horizontal" ? "retro-separator-h" : "retro-separator-v",
         className
       )}
       {...props}

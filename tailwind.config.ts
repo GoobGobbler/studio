@@ -40,8 +40,13 @@ export default {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
-  			border: 'hsl(var(--border))',
-  			input: 'hsl(var(--input))',
+  			border: 'hsl(var(--border-input))', // Default border uses input border color
+            'border-light': 'hsl(var(--border-light))', // Added light border
+            'border-dark': 'hsl(var(--border-dark))',   // Added dark border
+  			input: {
+                DEFAULT: 'hsl(var(--input))',
+                foreground: 'hsl(var(--input-foreground))' // Added input foreground
+            },
   			ring: 'hsl(var(--ring))',
   			chart: {
   				'1': 'hsl(var(--chart-1))',
@@ -62,10 +67,10 @@ export default {
   			}
   		},
   		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		},
+            lg: 'var(--radius)',
+            md: 'calc(var(--radius) - 0px)', // No rounding for md
+            sm: 'calc(var(--radius) - 0px)', // No rounding for sm
+		},
   		keyframes: {
   			'accordion-down': {
   				from: {
