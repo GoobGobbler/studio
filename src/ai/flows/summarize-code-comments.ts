@@ -1,61 +1,80 @@
+
 'use server';
 
 /**
- * @fileOverview Summarizes code comments in a given code snippet.
+ * @fileOverview Summarizes provided text content.
+ * Suitable for summarizing code, chat history, or documents for memory management.
  *
- * - summarizeCodeComments - A function that takes code as input and returns a summary of the comments.
- * - SummarizeCodeCommentsInput - The input type for the summarizeCodeComments function.
- * - SummarizeCodeCommentsOutput - The return type for the summarizeCodeComments function.
+ * - summarizeText - A function that takes text and returns a summary.
+ * - SummarizeTextInput - The input type for the summarizeText function.
+ * - SummarizeTextOutput - The return type for the summarizeText function.
  */
 
 import {ai} from '@/ai/ai-instance';
 import {z} from 'genkit';
 
-const SummarizeCodeCommentsInputSchema = z.object({
-  code: z.string().describe('The code snippet to summarize comments from.'),
+const SummarizeTextInputSchema = z.object({
+  text: z.string().describe('The text content to summarize.'),
+  context: z.string().optional().describe('Optional context about the text (e.g., "code comments", "chat discussion", "document section"). Helps guide the summary focus.'),
+  maxLength: z.number().optional().describe('Optional maximum length (in words or tokens, model-dependent) for the summary.')
 });
-export type SummarizeCodeCommentsInput = z.infer<typeof SummarizeCodeCommentsInputSchema>;
+export type SummarizeTextInput = z.infer<typeof SummarizeTextInputSchema>;
 
-const SummarizeCodeCommentsOutputSchema = z.object({
-  summary: z.string().describe('A summary of the comments in the code snippet.'),
+const SummarizeTextOutputSchema = z.object({
+  summary: z.string().describe('A concise summary of the input text.'),
 });
-export type SummarizeCodeCommentsOutput = z.infer<typeof SummarizeCodeCommentsOutputSchema>;
+export type SummarizeTextOutput = z.infer<typeof SummarizeTextOutputSchema>;
 
-export async function summarizeCodeComments(
-  input: SummarizeCodeCommentsInput
-): Promise<SummarizeCodeCommentsOutput> {
-  return summarizeCodeCommentsFlow(input);
+export async function summarizeText(
+  input: SummarizeTextInput
+): Promise<SummarizeTextOutput> {
+  // This flow might be executed directly or called by the Agent Coordinator
+  // as part of the recursive summarization process.
+  console.log("Executing summarizeText flow...");
+  return summarizeTextFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'summarizeCodeCommentsPrompt',
+  name: 'summarizeTextPrompt',
   input: {
-    schema: z.object({
-      code: z.string().describe('The code snippet to summarize comments from.'),
-    }),
+    schema: SummarizeTextInputSchema,
   },
   output: {
-    schema: z.object({
-      summary: z.string().describe('A summary of the comments in the code snippet.'),
-    }),
+    schema: SummarizeTextOutputSchema,
   },
-  prompt: `You are an AI assistant that summarizes code comments.  Given the following code, summarize the comments to explain what the code does.
+  prompt: `You are an AI assistant expert at summarizing text. Provide a concise summary of the following text.
+{{#if context}}
+Context: {{context}}
+{{/if}}
+{{#if maxLength}}
+Aim for a summary around {{maxLength}} words.
+{{/if}}
 
-Code:
-{{code}}`,
+Text to Summarize:
+{{{text}}}
+
+Summary:`,
 });
 
-const summarizeCodeCommentsFlow = ai.defineFlow<
-  typeof SummarizeCodeCommentsInputSchema,
-  typeof SummarizeCodeCommentsOutputSchema
+const summarizeTextFlow = ai.defineFlow<
+  typeof SummarizeTextInputSchema,
+  typeof SummarizeTextOutputSchema
 >(
   {
-    name: 'summarizeCodeCommentsFlow',
-    inputSchema: SummarizeCodeCommentsInputSchema,
-    outputSchema: SummarizeCodeCommentsOutputSchema,
+    name: 'summarizeTextFlow',
+    inputSchema: SummarizeTextInputSchema,
+    outputSchema: SummarizeTextOutputSchema,
   },
   async input => {
+    // TODO: Potentially add logic here to handle very long text by chunking
+    // and summarizing recursively before calling the final prompt, if the model has limits.
+    // This could involve calling this flow itself multiple times.
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+         throw new Error("Text summarization failed to produce output.");
+    }
+    console.log("summarizeText flow completed.");
+    return output;
   }
 );
+```

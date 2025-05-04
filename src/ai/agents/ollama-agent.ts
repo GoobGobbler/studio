@@ -1,26 +1,40 @@
 // src/ai/agents/ollama-agent.ts
-// Placeholder for integrating Ollama models using LangChain.js
+// Interaction logic for Ollama models via LangChain.js.
+// Note: In the multi-agent architecture, direct calls here might be less frequent.
+// The Agent Coordinator service will likely manage agent execution and tool calls.
 
-// Ensure you have installed langchain: npm install langchain @langchain/community
-// And potentially specific loaders/vector stores if doing RAG
+'use server'; // Mark for server-side execution
+
+// Ensure you have installed langchain: npm install langchain @langchain/community @langchain/openai @langchain/anthropic etc.
+// Also install vector store clients: npm install @langchain/community --save-dev # For embeddings/vectorstores
+// e.g., npm install @langchain/qdrant
+// Potentially needed: npm install tiktoken
 
 import { Ollama } from "@langchain/community/llms/ollama";
 import { ChatOllama } from "@langchain/community/chat_models/ollama";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-// Import other necessary Langchain components (Chains, Memory, Tools, etc.)
-// import { ConversationChain } from "langchain/chains";
-// import { BufferMemory } from "langchain/memory";
+import { OllamaEmbeddings } from "@langchain/community/embeddings/ollama";
+import { Document } from "@langchain/core/documents";
+// --- Potentially needed for advanced features ---
+// import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+// import { createRetrievalChain } from "langchain/chains/retrieval";
+// import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+// import { QdrantVectorStore } from "@langchain/qdrant"; // Example vector store
+// import { BufferMemory } from "langchain/memory"; // For short-term chat history if not handled externally
+// import { AgentExecutor, createReactAgent } from "langchain/agents"; // For complex agent logic if needed locally
+// import { TavilySearchResults } from "@langchain/community/tools/tavily_search"; // Example external tool
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+const OLLAMA_DEFAULT_MODEL = process.env.OLLAMA_DEFAULT_MODEL || "llama3"; // Default model
+const OLLAMA_EMBEDDING_MODEL = process.env.OLLAMA_EMBEDDING_MODEL || "nomic-embed-text"; // Default embedding model
 
-// --- Basic Ollama LLM Invocation ---
-export async function simpleOllamaCompletion(prompt: string, modelName: string = "llama3"): Promise<string> {
+// --- Basic Ollama LLM Invocation (Likely wrapped by AI Service/Coordinator) ---
+export async function simpleOllamaCompletion(prompt: string, modelName: string = OLLAMA_DEFAULT_MODEL): Promise<string> {
   try {
     const ollama = new Ollama({
       baseUrl: OLLAMA_BASE_URL,
       model: modelName,
-      // temperature: 0.7, // Adjust generation parameters as needed
     });
 
     console.log(`Sending prompt to Ollama (${modelName}): "${prompt}"`);
@@ -33,21 +47,18 @@ export async function simpleOllamaCompletion(prompt: string, modelName: string =
   }
 }
 
-// --- Ollama Chat Model Example ---
-export async function simpleOllamaChat(userInput: string, modelName: string = "llama3"): Promise<string> {
+// --- Ollama Chat Model Example (Likely wrapped by AI Service/Coordinator) ---
+export async function simpleOllamaChat(userInput: string, modelName: string = OLLAMA_DEFAULT_MODEL): Promise<string> {
   try {
     const chatOllama = new ChatOllama({
       baseUrl: OLLAMA_BASE_URL,
       model: modelName,
-      // temperature: 0.8,
     });
 
-    // Example using a simple prompt template chain
     const prompt = PromptTemplate.fromTemplate(
-      "You are a helpful AI assistant. Answer the user's question: {question}"
+      "You are a helpful AI assistant integrated into the QuonxCoder IDE. Answer the user's question concisely: {question}"
     );
     const outputParser = new StringOutputParser();
-
     const chain = prompt.pipe(chatOllama).pipe(outputParser);
 
     console.log(`Sending user input to Ollama Chat (${modelName}): "${userInput}"`);
@@ -57,75 +68,50 @@ export async function simpleOllamaChat(userInput: string, modelName: string = "l
 
   } catch (error) {
     console.error(`Error interacting with Ollama Chat (${modelName}):`, error);
-    throw new Error(`Failed to get chat response from Ollama (${modelName})`);
+    throw new Error(`Failed to get chat response from Ollama Chat (${modelName})`);
   }
 }
 
-// --- Placeholder for Agent Implementation ---
-// Agents involve LLMs deciding which tools to use based on the input.
-// Requires defining tools (functions the LLM can call) and an agent executor.
-
-// Example Tool Definition (Placeholder)
-// import { DynamicTool } from "langchain/tools";
-// const codeExecutionTool = new DynamicTool({
-//   name: "code-executor",
-//   description: "Executes Python code in a sandboxed environment and returns the output.",
-//   func: async (code: string) => {
-//     console.log("Executing code (placeholder):", code);
-//     // TODO: Implement actual sandboxed execution via Nix container service
-//     return "Code execution placeholder output.";
-//   },
-// });
-
-// Example Agent Setup (Conceptual)
-// import { initializeAgentExecutorWithOptions } from "langchain/agents";
-// export async function runOllamaAgent(input: string, modelName: string = "llama3") {
-//   try {
-//     const model = new ChatOllama({ baseUrl: OLLAMA_BASE_URL, model: modelName, temperature: 0 });
-//     const tools = [codeExecutionTool /* , other tools... */ ];
-//     const executor = await initializeAgentExecutorWithOptions(tools, model, {
-//       agentType: "ollama-functions", // Or another suitable agent type for Ollama
-//       verbose: true,
-//     });
-//     const result = await executor.invoke({ input });
-//     return result.output;
-//   } catch (error) {
-//     console.error(`Error running Ollama Agent (${modelName}):`, error);
-//     throw new Error(`Failed to run Ollama Agent (${modelName})`);
-//   }
-// }
-
 // --- Placeholder for RAG Implementation ---
-// RAG involves retrieving relevant documents from a vector store and passing them
-// to the LLM along with the user query.
-// Requires setting up a vector store (e.g., Chroma, FAISS, Pinecone),
-// embedding documents, and creating a retrieval chain.
+// RAG involves retrieving relevant documents (context) from a vector store
+// and passing them to the LLM along with the user query.
+// This logic would typically reside within the AI Service or be triggered by the Agent Coordinator.
 
-// import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-// import { OllamaEmbeddings } from "@langchain/community/embeddings/ollama";
-// import { MemoryVectorStore } from "langchain/vectorstores/memory"; // Example in-memory store
-// import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
-// import { createRetrievalChain } from "langchain/chains/retrieval";
-// // ... document loaders (PDF, Text, etc.)
+// Example Structure (Conceptual - requires Vector Store client, e.g., Qdrant)
+// import { QdrantClient } from "@qdrant/js-client-rest";
+// const vectorStoreClient = new QdrantClient({ url: process.env.VECTOR_DB_URL });
 
-// export async function ollamaRAGQuery(query: string, documents: /* Loaded Document[] */ any[]) {
+// export async function ollamaRAGQuery(query: string, collectionName: string = "quonxcoder_docs", modelName: string = OLLAMA_DEFAULT_MODEL): Promise<string> {
 //   try {
-//     const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 500, chunkOverlap: 50 });
-//     const splitDocs = await textSplitter.splitDocuments(documents);
+//     const embeddings = new OllamaEmbeddings({
+//       model: OLLAMA_EMBEDDING_MODEL,
+//       baseUrl: OLLAMA_BASE_URL
+//     });
 
-//     const embeddings = new OllamaEmbeddings({ model: "nomic-embed-text", baseUrl: OLLAMA_BASE_URL }); // Or another embedding model
-//     const vectorStore = await MemoryVectorStore.fromDocuments(splitDocs, embeddings);
-//     const retriever = vectorStore.asRetriever();
+    // 1. Embed the query
+    // const queryEmbedding = await embeddings.embedQuery(query);
 
-//     const chatModel = new ChatOllama({ model: "llama3", baseUrl: OLLAMA_BASE_URL });
-//     const qaPrompt = PromptTemplate.fromTemplate(
-//       `Answer the user's question based only on the following context:\n\n{context}\n\nQuestion: {input}`
+    // 2. Search the vector store for relevant documents
+    // const searchResult = await vectorStoreClient.search(collectionName, {
+    //   vector: queryEmbedding,
+    //   limit: 5, // Retrieve top 5 relevant chunks
+    //   // Add filtering if needed (e.g., by project ID, file type)
+    //   // filter: { must: [{ key: "project_id", match: { value: "current_project" } }] }
+    // });
+    // const contextDocs = searchResult.map(hit => new Document({ pageContent: hit.payload?.pageContent || "" }));
+    // const context = contextDocs.map(doc => doc.pageContent).join("\n\n");
+
+//     // 3. Create a prompt with the context and query
+//     const ragPrompt = PromptTemplate.fromTemplate(
+//       `You are an AI assistant for the QuonxCoder IDE. Answer the following question based *only* on the provided context. If the context doesn't contain the answer, say "I don't have enough information in my knowledge base to answer that."\n\nContext:\n{context}\n\nQuestion: {question}`
 //     );
-//     const ragChain = await createStuffDocumentsChain({ llm: chatModel, prompt: qaPrompt });
-//     const retrievalChain = await createRetrievalChain({ combineDocsChain: ragChain, retriever });
 
-//     const result = await retrievalChain.invoke({ input: query });
-//     return result.answer;
+//     // 4. Invoke the LLM with the augmented prompt
+//     const chatModel = new ChatOllama({ baseUrl: OLLAMA_BASE_URL, model: modelName });
+//     const chain = ragPrompt.pipe(chatModel).pipe(new StringOutputParser());
+//     const result = await chain.invoke({ context: context, question: query });
+
+//     return result;
 
 //   } catch (error) {
 //     console.error("Error during RAG query:", error);
@@ -133,4 +119,42 @@ export async function simpleOllamaChat(userInput: string, modelName: string = "l
 //   }
 // }
 
-console.log("Ollama Agent placeholder loaded. Implement specific agent/RAG logic.");
+// --- Placeholder for Agent Implementation ---
+// Complex agent logic (planning, tool use, self-reflection) is typically managed by the Agent Coordinator.
+// The coordinator would call specific functions (like simpleOllamaChat or ollamaRAGQuery) or more complex LangChain chains/executors as needed.
+
+// Example Self-Reflection Loop Concept (Managed by Coordinator):
+// async function selfReflectiveCodingTask(taskDescription: string): Promise<string> {
+//   let currentCode = "";
+//   let testResults = { pass: false, errors: [] };
+//   const maxAttempts = 5;
+
+//   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+//     console.log(`Attempt ${attempt}: Generating code for "${taskDescription}"...`);
+//     // 1. Plan/Generate Code (Call Code Gen Agent via Coordinator)
+//     currentCode = await coordinator.requestAgentExecution('codeGenAgent', { prompt: taskDescription, existingCode: currentCode });
+
+//     console.log(`Attempt ${attempt}: Generating tests...`);
+//     // 2. Generate Tests (Call Test Gen Agent via Coordinator)
+//     const testCode = await coordinator.requestAgentExecution('testGenAgent', { code: currentCode });
+
+//     console.log(`Attempt ${attempt}: Running tests...`);
+//     // 3. Execute Tests (Call Test Execution Service/Agent)
+//     testResults = await coordinator.requestServiceExecution('testExecutor', { code: currentCode, testCode: testCode });
+
+//     if (testResults.pass) {
+//       console.log(`Attempt ${attempt}: Tests passed!`);
+//       return currentCode; // Success
+//     }
+
+//     console.log(`Attempt ${attempt}: Tests failed. Reflecting and repairing...`);
+//     // 4. Reflect and Repair (Call Code Gen Agent with feedback via Coordinator)
+//     taskDescription = `The previous code attempt failed tests with these errors: ${JSON.stringify(testResults.errors)}. Please fix the code: ${currentCode}`;
+//     // The next loop iteration will use the updated taskDescription
+//   }
+
+//   throw new Error(`Failed to generate passing code after ${maxAttempts} attempts.`);
+// }
+
+console.log("Ollama Agent logic loaded. Execution typically orchestrated by Agent Coordinator.");
+```

@@ -1,5 +1,5 @@
 # docker-compose.yml
-# Defines the multi-container application environment for RetroIDE
+# Defines the multi-container application environment for QuonxCoder
 
 version: '3.8'
 
@@ -9,38 +9,52 @@ services:
     build:
       context: .
       dockerfile: Dockerfile # Assumes a Dockerfile exists in the root
-    container_name: retroide-frontend
+    container_name: quonxcoder-frontend
     ports:
       - "9002:9002" # Map host port 9002 to container port 9002 (default Next.js dev)
     environment:
       # Pass necessary environment variables from host .env or define here
       - NODE_ENV=development
-      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434} # Default to ollama service if running
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY} # Optional for Genkit
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434} # Default to host Ollama if not using service below
       - REDIS_URL=redis://redis:6379
       - COLLABORATION_SERVICE_URL=http://collaboration-service:3001
       - SECRETS_SERVICE_URL=http://secrets-service:3002
+      - AI_SERVICE_URL=http://ai-service:3003 # URL for AI Service
+      - AGENT_COORDINATOR_URL=http://agent-coordinator:3004 # URL for Agent Coordinator
+      - OBSERVABILITY_SERVICE_URL=http://observability-service:3005 # URL for Observability Service
       # NEXT_PUBLIC_... variables needed by the client
       - NEXT_PUBLIC_COLLABORATION_WS_URL=ws://localhost:3001 # Use localhost for browser access
+      - NEXT_PUBLIC_SECRETS_SERVICE_URL=/api/proxy/secrets # Example proxy path
+      - NEXT_PUBLIC_AI_SERVICE_URL=/api/proxy/ai # Example proxy path
+      - NEXT_PUBLIC_AGENT_COORDINATOR_URL=/api/proxy/agents # Example proxy path
+      - NEXT_PUBLIC_USE_WEBRTC=${NEXT_PUBLIC_USE_WEBRTC:-false}
     volumes:
       - .:/app # Mount the current directory to /app in the container
       - /app/node_modules # Avoid mounting host node_modules over container's
       - /app/.next # Persist .next build cache
     depends_on:
       - redis
-      - collaboration-service # Make sure backend services are available
+      - collaboration-service
       - secrets-service
+      - ai-service # Depends on AI service
+      - agent-coordinator
+      - vector-db # Depends on vector DB
       # - ollama # Uncomment if using the ollama service below
+      # - language-env-service # Add if implemented
+      # - git-service # Add if implemented
+      # - deployment-service # Add if implemented
+      # - observability-service # Add if implemented
     networks:
-      - retroide_network
+      - quonxcoder_network
     # command: npm run dev # Or the command to start your Next.js app
 
-  # Collaboration Service (Placeholder - Node.js/Express + Yjs)
+  # Collaboration Service (Node.js/Express + Yjs)
   collaboration-service:
     build:
       context: ./services/collaboration-service # Path to the service's Dockerfile context
       dockerfile: Dockerfile
-    container_name: retroide-collaboration
+    container_name: quonxcoder-collaboration
     ports:
       - "3001:3001" # Expose service port
     environment:
@@ -53,15 +67,15 @@ services:
       - ./services/collaboration-service:/app
       - /app/node_modules
     networks:
-      - retroide_network
+      - quonxcoder_network
     # command: npm run start # Command to start the service
 
-  # Secrets Service (Placeholder - Node.js/Express)
+  # Secrets Service (Node.js/Express + AES)
   secrets-service:
     build:
       context: ./services/secrets-service # Path to the service's Dockerfile context
       dockerfile: Dockerfile
-    container_name: retroide-secrets
+    container_name: quonxcoder-secrets
     ports:
       - "3002:3002" # Expose service port
     environment:
@@ -70,55 +84,180 @@ services:
       - SECRET_VAULT_KEY=${SECRET_VAULT_KEY} # Load from host .env
       # Add database connection string if needed (e.g., POSTGRES_URL)
     depends_on:
-      # - database # Add dependency if using a database service
       - redis # Example dependency
     volumes:
       - ./services/secrets-service:/app
       - /app/node_modules
     networks:
-      - retroide_network
+      - quonxcoder_network
     # command: npm run start # Command to start the service
 
-  # Redis for Sessions & Yjs State
+  # AI Service (Node.js/Express - Manages Memory, LLM Calls, RAG)
+  ai-service:
+    build:
+      context: ./services/ai-service # Path to the service's Dockerfile context
+      dockerfile: Dockerfile
+    container_name: quonxcoder-ai
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - REDIS_URL=redis://redis:6379 # For short-term memory cache
+      - VECTOR_DB_URL=http://vector-db:6333 # URL for Vector DB (Qdrant default)
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434} # Default to host Ollama
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY} # Optional
+      # Add API keys for other external LLMs if needed (Claude, GPT-4o)
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - redis
+      - vector-db
+      # - ollama # If running Ollama as a service
+    volumes:
+      - ./services/ai-service:/app
+      - /app/node_modules
+    networks:
+      - quonxcoder_network
+    # command: npm run start
+
+  # Agent Coordinator Service (Node.js/Express - Orchestrates AI Agents)
+  agent-coordinator:
+    build:
+      context: ./services/agent-coordinator # Path to the service's Dockerfile context
+      dockerfile: Dockerfile
+    container_name: quonxcoder-agent-coordinator
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - AI_SERVICE_URL=http://ai-service:3003 # Depends on AI Service
+      - REDIS_URL=redis://redis:6379 # For task queues/state
+      # Potentially needs access to other services (Git, Deploy, etc.)
+    depends_on:
+      - redis
+      - ai-service
+    volumes:
+      - ./services/agent-coordinator:/app
+      - /app/node_modules
+    networks:
+      - quonxcoder_network
+    # command: npm run start
+
+  # Vector Database (Example: Qdrant - replace with ChromaDB if preferred)
+  vector-db:
+    image: qdrant/qdrant:latest
+    container_name: quonxcoder-vector-db
+    ports:
+      - "6333:6333" # HTTP API
+      - "6334:6334" # gRPC
+    volumes:
+      - vector_db_data:/qdrant/storage
+    # environment:
+      # - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY} # Add API key if needed
+    networks:
+      - quonxcoder_network
+
+  # Redis for Sessions, Yjs State, Short-Term Cache, Queues
   redis:
     image: redis:alpine
-    container_name: retroide-redis
+    container_name: quonxcoder-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - retroide_network
+      - quonxcoder_network
+
+  # Observability Service (Placeholder - e.g., Prometheus/Grafana/Loki stack or custom service)
+  observability-service:
+    build:
+      context: ./services/observability-service # Path to the service's Dockerfile context
+      dockerfile: Dockerfile
+    container_name: quonxcoder-observability
+    ports:
+      - "3005:3005" # Example port
+      # Expose Grafana/Prometheus ports if using them directly
+      # - "3000:3000" # Grafana default
+      # - "9090:9090" # Prometheus default
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      # Add configuration for connecting to monitoring DB, etc.
+    depends_on:
+      - redis # Example dependency
+    volumes:
+      - ./services/observability-service:/app
+      - /app/node_modules
+      # Add volumes for Prometheus/Grafana/Loki data if needed
+      # - grafana_data:/var/lib/grafana
+      # - prometheus_data:/prometheus
+    networks:
+      - quonxcoder_network
+    # command: npm run start
 
   # --- Optional Services ---
 
-  # Ollama Service (Uncomment if needed)
+  # Ollama Service (Uncomment if needed, adjust OLLAMA_BASE_URL in other services)
   # ollama:
   #   image: ollama/ollama:latest # Or a specific version
-  #   container_name: retroide-ollama
+  #   container_name: quonxcoder-ollama
   #   ports:
   #     - "11434:11434"
   #   volumes:
   #     - ollama_data:/root/.ollama # Persist models
   #   networks:
-  #     - retroide_network
+  #     - quonxcoder_network
   #   # Add GPU support if available/needed
   #   # deploy:
   #   #   resources:
   #   #     reservations:
   #   #       devices:
   #   #         - driver: nvidia
-  #   #           count: 1
+  #   #           count: 1 # Adjust GPU count as needed
   #   #           capabilities: [gpu]
 
-  # Add other services like Database, Vector Store, etc. here
+  # Language Environment Service (Placeholder - Nix based)
+  # language-env-service:
+  #   build:
+  #     context: ./services/language-env-service
+  #     dockerfile: Dockerfile
+  #   container_name: quonxcoder-lang-env
+  #   ports:
+  #     - "3006:3006" # Example port
+  #   # ... other configs
+
+  # Git Service (Placeholder)
+  # git-service:
+  #   build:
+  #     context: ./services/git-service
+  #     dockerfile: Dockerfile
+  #   container_name: quonxcoder-git
+  #   ports:
+  #     - "3007:3007" # Example port
+  #   # ... other configs
+
+  # Deployment Service (Placeholder)
+  # deployment-service:
+  #   build:
+  #     context: ./services/deployment-service
+  #     dockerfile: Dockerfile
+  #   container_name: quonxcoder-deploy
+  #   ports:
+  #     - "3008:3008" # Example port
+  #   # ... other configs
 
 # Volumes definition
 volumes:
   redis_data:
+  vector_db_data:
   # ollama_data: # Uncomment if using ollama service
+  # grafana_data: # Uncomment if using observability stack
+  # prometheus_data:
 
 # Network definition
 networks:
-  retroide_network:
+  quonxcoder_network:
     driver: bridge
+```

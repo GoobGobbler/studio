@@ -1,51 +1,67 @@
 # k8s/ingress.yaml
-# Placeholder Kubernetes Ingress for RetroIDE
+# Kubernetes Ingress for QuonxCoder
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: retroide-ingress
+  name: quonxcoder-ingress
   annotations:
     # --- Common Annotations (adjust based on your Ingress controller) ---
     # Nginx Ingress Controller:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m" # Allow larger uploads if needed
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300" # Increase timeout for long polling/WS
+    nginx.ingress.kubernetes.io/rewrite-target: /$2 # Allow capturing path segments if needed
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m" # Allow larger uploads (e.g., RAG docs)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300" # Increase timeout for long polling/WS/AI tasks
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     # Enable WebSockets for collaboration service path
-    nginx.ingress.kubernetes.io/websocket-services: "retroide-collaboration-service" # Name of the WS service
+    nginx.ingress.kubernetes.io/websocket-services: "quonxcoder-collaboration-service" # Name of the WS service
     # Let's Encrypt / Cert-Manager:
     cert-manager.io/cluster-issuer: "letsencrypt-prod" # Replace with your issuer name
     # --- End Annotations ---
 spec:
-  ingressClassName: nginx # Or your ingress controller class name (e.g., traefik, haproxy)
+  ingressClassName: nginx # Or your ingress controller class name
   tls:
   - hosts:
-    - retroide.yourdomain.com # Replace with your actual domain
-    secretName: retroide-tls-secret # Cert-Manager will create this secret
+    - quonxcoder.yourdomain.com # Replace with your actual domain
+    secretName: quonxcoder-tls-secret # Cert-Manager will create this secret
   rules:
-  - host: retroide.yourdomain.com # Replace with your actual domain
+  - host: quonxcoder.yourdomain.com # Replace with your actual domain
     http:
       paths:
-      - path: / # Route for the frontend application
+      - path: /()(.*) # Route for the frontend application (capture group allows rewrite)
         pathType: Prefix
         backend:
           service:
-            name: retroide-frontend-service # Service defined in service.yaml
+            name: quonxcoder-frontend-service # Service defined in service.yaml
             port:
-              number: 80 # Service port
-      - path: /ws # Dedicated path for WebSocket connections (optional, can be same as service)
+              number: 80 # Service port (maps to targetPort 9002)
+      - path: /ws/collab(/|$)(.*) # Dedicated path for WebSocket connections
         pathType: Prefix
         backend:
           service:
-            name: retroide-collaboration-service # Collaboration service
+            name: quonxcoder-collaboration-service # Collaboration service
             port:
               number: 3001 # Port where the WS server listens
-      # Add paths for other backend services if exposing them directly (e.g., /api/secrets)
-      # - path: /api/secrets
+      # --- API Proxies (Handled by Frontend/Next.js API routes typically) ---
+      # If you need direct Ingress routing for backend APIs (less common with Next.js proxy):
+      # - path: /api/secrets(/|$)(.*)
       #   pathType: Prefix
       #   backend:
       #     service:
-      #       name: retroide-secrets-service
+      #       name: quonxcoder-secrets-service
       #       port:
       #         number: 3002
+      # - path: /api/ai(/|$)(.*)
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: quonxcoder-ai-service
+      #       port:
+      #         number: 3003
+      # - path: /api/agents(/|$)(.*)
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: quonxcoder-agent-coordinator-service
+      #       port:
+      #         number: 3004
+```

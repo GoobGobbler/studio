@@ -1,22 +1,41 @@
 # k8s/configmap.yaml
-# Placeholder Kubernetes ConfigMap for RetroIDE configuration
+# Kubernetes ConfigMap for QuonxCoder configuration
 
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: retroide-config
+  name: quonxcoder-config
 data:
   # --- General Configuration ---
   NODE_ENV: "production"
-  # Frontend related URLs
-  NEXT_PUBLIC_COLLABORATION_WS_URL: "wss://retroide.yourdomain.com/ws" # Public WS URL (use wss for TLS)
-  # Backend Service URLs (Internal - used by other services if needed)
-  # These might not be strictly necessary if services communicate directly via Service names
-  # COLLABORATION_SERVICE_URL: "http://retroide-collaboration-service:3001"
-  # SECRETS_SERVICE_URL: "http://retroide-secrets-service:3002"
+  # Frontend related URLs (Public/Ingress facing)
+  NEXT_PUBLIC_COLLABORATION_WS_URL: "wss://quonxcoder.yourdomain.com/ws/collab" # Public WS URL (use wss for TLS)
+  NEXT_PUBLIC_SECRETS_SERVICE_URL: "/api/proxy/secrets" # Frontend uses proxy
+  NEXT_PUBLIC_AI_SERVICE_URL: "/api/proxy/ai" # Frontend uses proxy
+  NEXT_PUBLIC_AGENT_COORDINATOR_URL: "/api/proxy/agents" # Frontend uses proxy
+  NEXT_PUBLIC_USE_WEBRTC: "false" # Disable WebRTC by default in K8s
+
+  # --- Backend Service URLs (Internal - used by other services) ---
+  # These reference K8s Service names within the cluster namespace
+  COLLABORATION_SERVICE_URL: "http://quonxcoder-collaboration-service:3001"
+  SECRETS_SERVICE_URL: "http://quonxcoder-secrets-service:3002"
+  AI_SERVICE_URL: "http://quonxcoder-ai-service:3003"
+  AGENT_COORDINATOR_URL: "http://quonxcoder-agent-coordinator-service:3004"
+  OBSERVABILITY_SERVICE_URL: "http://quonxcoder-observability-service:3005"
+  # GIT_SERVICE_URL: "http://quonxcoder-git-service:3007" # Add if used
+  # DEPLOYMENT_SERVICE_URL: "http://quonxcoder-deployment-service:3008" # Add if used
+
   # --- AI Configuration ---
-  OLLAMA_BASE_URL: "http://retroide-ollama-service:11434" # Internal URL for Ollama service (if used)
+  OLLAMA_BASE_URL: "http://ollama.your-ollama-namespace.svc.cluster.local:11434" # Internal URL for Ollama service (replace namespace)
+  # GOOGLE_GENAI_API_KEY: (Loaded from Secret)
+  # ANTHROPIC_API_KEY: (Loaded from Secret)
+  # OPENAI_API_KEY: (Loaded from Secret)
+
   # --- Database/Cache Configuration ---
-  REDIS_URL: "redis://retroide-redis-service:6379" # Internal URL for Redis service
-  # Add other database connection strings, external API endpoints etc.
+  REDIS_URL: "redis://quonxcoder-redis-service:6379" # Internal URL for Redis service
+  VECTOR_DB_URL: "http://quonxcoder-vector-db-service:6333" # Internal URL for Vector DB (Qdrant default)
+
+  # Add other config: external API endpoints, feature flags etc.
   # EXAMPLE_API_ENDPOINT: "https://api.example.com/v1"
+  # FEATURE_FLAG_X: "true"
+```

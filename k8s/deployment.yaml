@@ -1,114 +1,283 @@
 # k8s/deployment.yaml
-# Placeholder Kubernetes Deployment for RetroIDE Frontend
+# Kubernetes Deployments for QuonxCoder services
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: retroide-frontend-deployment
+  name: quonxcoder-frontend-deployment
   labels:
-    app: retroide-frontend
+    app: quonxcoder-frontend
 spec:
   replicas: 2 # Example: Start with 2 replicas
   selector:
     matchLabels:
-      app: retroide-frontend
+      app: quonxcoder-frontend
   template:
     metadata:
       labels:
-        app: retroide-frontend
+        app: quonxcoder-frontend
     spec:
       containers:
-      - name: retroide-frontend
-        image: your-dockerhub-username/retroide-frontend:latest # Replace with your image registry path
+      - name: quonxcoder-frontend
+        image: your-dockerhub-username/quonxcoder-frontend:latest # Replace with your image registry path
         ports:
         - containerPort: 9002
-        env:
-          # Option 1: Load from Secrets and ConfigMaps
+        envFrom: # Load multiple variables from ConfigMap and Secret
+          - configMapRef:
+              name: quonxcoder-config
+          - secretRef:
+              name: quonxcoder-secrets
+        env: # Define specific variables or override loaded ones if needed
           - name: NODE_ENV
             value: "production"
           - name: PORT
             value: "9002"
           - name: HOSTNAME
             value: "0.0.0.0"
-          - name: GOOGLE_GENAI_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: retroide-secrets # Assumes a Secret named 'retroide-secrets' exists
-                key: google-genai-api-key
-          - name: OLLAMA_BASE_URL
-            valueFrom:
-              configMapKeyRef:
-                name: retroide-config # Assumes a ConfigMap named 'retroide-config' exists
-                key: ollama-base-url
-          - name: REDIS_URL
-            valueFrom:
-              configMapKeyRef:
-                name: retroide-config
-                key: redis-url
-          - name: COLLABORATION_SERVICE_URL # Use internal service name
-            value: "http://retroide-collaboration-service:3001" # Assumes a Service named 'retroide-collaboration-service'
-          - name: SECRETS_SERVICE_URL # Use internal service name
-            value: "http://retroide-secrets-service:3002" # Assumes a Service named 'retroide-secrets-service'
-          - name: NEXT_PUBLIC_COLLABORATION_WS_URL # Use Ingress host or external URL for client
-            valueFrom:
-              configMapKeyRef:
-                name: retroide-config
-                key: next-public-collaboration-ws-url
-        # Add resource requests and limits
-        # resources:
-        #   requests:
-        #     memory: "256Mi"
-        #     cpu: "250m"
-        #   limits:
-        #     memory: "512Mi"
-        #     cpu: "500m"
-        # Add readiness and liveness probes
-        # readinessProbe:
-        #   httpGet:
-        #     path: /api/health # Example health check endpoint
-        #     port: 9002
-        #   initialDelaySeconds: 15
-        #   periodSeconds: 20
-        # livenessProbe:
-        #   httpGet:
-        #     path: /api/health
-        #     port: 9002
-        #   initialDelaySeconds: 15
-        #   periodSeconds: 20
+          # Ensure internal service URLs are explicitly set if not using default discovery well
+          - name: COLLABORATION_SERVICE_URL
+            value: "http://quonxcoder-collaboration-service:3001"
+          - name: SECRETS_SERVICE_URL
+            value: "http://quonxcoder-secrets-service:3002"
+          - name: AI_SERVICE_URL
+            value: "http://quonxcoder-ai-service:3003"
+          - name: AGENT_COORDINATOR_URL
+            value: "http://quonxcoder-agent-coordinator-service:3004"
+          - name: OBSERVABILITY_SERVICE_URL
+            value: "http://quonxcoder-observability-service:3005"
+          # Frontend needs public facing URLs (usually set via ConfigMap above)
+          # - name: NEXT_PUBLIC_COLLABORATION_WS_URL
+          #   valueFrom: ...
+          # - name: NEXT_PUBLIC_SECRETS_SERVICE_URL
+          #   valueFrom: ...
+        # Add resource requests and limits, probes etc. as before
 
-# --- Placeholder Deployments for Backend Services ---
-# Add similar deployments for collaboration-service, secrets-service, redis, ollama etc.
-# Example for collaboration-service:
-# ---
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: retroide-collaboration-deployment
-#   labels:
-#     app: retroide-collaboration
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: retroide-collaboration
-#   template:
-#     metadata:
-#       labels:
-#         app: retroide-collaboration
-#     spec:
-#       containers:
-#       - name: retroide-collaboration
-#         image: your-dockerhub-username/retroide-collaboration-service:latest
-#         ports:
-#         - containerPort: 3001
-#         env:
-#           - name: NODE_ENV
-#             value: "production"
-#           - name: PORT
-#             value: "3001"
-#           - name: REDIS_URL
-#             valueFrom:
-#               configMapKeyRef:
-#                 name: retroide-config
-#                 key: redis-url
-# ---
+---
+# Placeholder Deployment for Collaboration Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quonxcoder-collaboration-deployment
+  labels:
+    app: quonxcoder-collaboration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quonxcoder-collaboration
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-collaboration
+    spec:
+      containers:
+      - name: quonxcoder-collaboration
+        image: your-dockerhub-username/quonxcoder-collaboration-service:latest
+        ports:
+        - containerPort: 3001
+        envFrom:
+          - configMapRef:
+              name: quonxcoder-config
+          # - secretRef: ... if needed
+        env:
+          - name: PORT
+            value: "3001"
+---
+# Placeholder Deployment for Secrets Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quonxcoder-secrets-deployment
+  labels:
+    app: quonxcoder-secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quonxcoder-secrets
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-secrets
+    spec:
+      containers:
+      - name: quonxcoder-secrets
+        image: your-dockerhub-username/quonxcoder-secrets-service:latest
+        ports:
+        - containerPort: 3002
+        envFrom:
+          - configMapRef:
+              name: quonxcoder-config
+          - secretRef:
+              name: quonxcoder-secrets
+        env:
+          - name: PORT
+            value: "3002"
+---
+# Placeholder Deployment for AI Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quonxcoder-ai-deployment
+  labels:
+    app: quonxcoder-ai
+spec:
+  replicas: 1 # Adjust based on load
+  selector:
+    matchLabels:
+      app: quonxcoder-ai
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-ai
+    spec:
+      containers:
+      - name: quonxcoder-ai
+        image: your-dockerhub-username/quonxcoder-ai-service:latest
+        ports:
+        - containerPort: 3003
+        envFrom:
+          - configMapRef:
+              name: quonxcoder-config
+          - secretRef:
+              name: quonxcoder-secrets
+        env:
+          - name: PORT
+            value: "3003"
+          # Ensure Vector DB and Redis URLs are correctly referenced
+          - name: VECTOR_DB_URL
+            value: "http://quonxcoder-vector-db-service:6333"
+          - name: REDIS_URL
+            value: "redis://quonxcoder-redis-service:6379"
+---
+# Placeholder Deployment for Agent Coordinator Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quonxcoder-agent-coordinator-deployment
+  labels:
+    app: quonxcoder-agent-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quonxcoder-agent-coordinator
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-agent-coordinator
+    spec:
+      containers:
+      - name: quonxcoder-agent-coordinator
+        image: your-dockerhub-username/quonxcoder-agent-coordinator-service:latest
+        ports:
+        - containerPort: 3004
+        envFrom:
+          - configMapRef:
+              name: quonxcoder-config
+          # - secretRef: ... if needed
+        env:
+          - name: PORT
+            value: "3004"
+          # Ensure AI Service URL is correctly referenced
+          - name: AI_SERVICE_URL
+            value: "http://quonxcoder-ai-service:3003"
+---
+# Placeholder Deployment/StatefulSet for Vector DB (e.g., Qdrant)
+# Use StatefulSet if persistence is critical and needs stable network IDs
+apiVersion: apps/v1 # Or apps/v1 StatefulSet
+kind: Deployment # Or StatefulSet
+metadata:
+  name: quonxcoder-vector-db-deployment # Or statefulset
+  labels:
+    app: quonxcoder-vector-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quonxcoder-vector-db
+  # serviceName: quonxcoder-vector-db-service # Required for StatefulSet
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-vector-db
+    spec:
+      containers:
+      - name: qdrant # Or chroma
+        image: qdrant/qdrant:latest # Or chromadb image
+        ports:
+        - containerPort: 6333 # Qdrant HTTP
+        - containerPort: 6334 # Qdrant gRPC
+        # Add volume mounts for persistent data
+        volumeMounts:
+        - name: vector-db-storage
+          mountPath: /qdrant/storage # Qdrant path, adjust for Chroma
+      volumes:
+      - name: vector-db-storage
+        persistentVolumeClaim:
+          claimName: quonxcoder-vector-db-pvc # Define PVC separately
+---
+# Placeholder Deployment/StatefulSet for Redis
+apiVersion: apps/v1 # Or apps/v1 StatefulSet
+kind: Deployment # Or StatefulSet
+metadata:
+  name: quonxcoder-redis-deployment # Or statefulset
+  labels:
+    app: quonxcoder-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quonxcoder-redis
+  # serviceName: quonxcoder-redis-service # Required for StatefulSet
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:alpine
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: quonxcoder-redis-pvc # Define PVC separately
+---
+# Placeholder Deployment for Observability Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quonxcoder-observability-deployment
+  labels:
+    app: quonxcoder-observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quonxcoder-observability
+  template:
+    metadata:
+      labels:
+        app: quonxcoder-observability
+    spec:
+      containers:
+      - name: quonxcoder-observability
+        image: your-dockerhub-username/quonxcoder-observability-service:latest # Or Grafana/Prometheus images
+        ports:
+        - containerPort: 3005 # Your service port
+        # - containerPort: 3000 # Grafana default
+        # - containerPort: 9090 # Prometheus default
+        envFrom:
+          - configMapRef:
+              name: quonxcoder-config
+          # - secretRef: ... if needed
+        env:
+          - name: PORT
+            value: "3005"
+        # Add volume mounts if using Grafana/Prometheus stack directly
+```

@@ -1,73 +1,17 @@
-// src/ai/agents/genkit-helpers.ts
-// Helper functions for more complex Genkit interactions,
-// potentially simulating agent-like behavior by chaining flows or using tools.
-
-'use server'; // Required if these functions are called from Server Components or Actions
+'use server';
+/**
+ * @fileOverview Genkit Agent examples and Tool definitions.
+ * Demonstrates how to define and use Genkit tools within flows.
+ *
+ * - getProjectFilesTool - A Genkit tool to list project files (placeholder).
+ * - generateReadmeFlow - A Genkit flow that utilizes the getProjectFilesTool.
+ * - generateProjectReadme - Wrapper function for the generateReadmeFlow.
+ */
 
 import { ai } from '@/ai/ai-instance';
-import { generateCodeFromPrompt, type GenerateCodeFromPromptInput } from '@/ai/flows/generate-code-from-prompt';
-import { explainSelectedCode, type ExplainSelectedCodeInput } from '@/ai/flows/explain-selected-code';
-import { summarizeCodeComments, type SummarizeCodeCommentsInput } from '@/ai/flows/summarize-code-comments';
 import { z } from 'genkit';
 
-// --- Example 1: Chaining Flows ---
-// Generate code, then explain it.
-
-interface GenerateAndExplainInput {
-    generationPrompt: string;
-    explanationLanguage: string; // e.g., 'TypeScript'
-}
-
-interface GenerateAndExplainOutput {
-    generatedCode: string;
-    explanation: string;
-}
-
-export async function generateAndExplainCode(input: GenerateAndExplainInput): Promise<GenerateAndExplainOutput> {
-    console.log("Starting generateAndExplainCode flow...");
-
-    // Step 1: Generate Code
-    const generateInput: GenerateCodeFromPromptInput = { prompt: input.generationPrompt };
-    let generatedOutput;
-    try {
-        console.log("Calling generateCodeFromPrompt flow...");
-        generatedOutput = await generateCodeFromPrompt(generateInput);
-        if (!generatedOutput?.code) {
-            throw new Error("Code generation returned empty result.");
-        }
-        console.log("Code generation successful.");
-    } catch (error) {
-        console.error("Error in code generation step:", error);
-        throw new Error("Failed to generate code."); // Re-throw or handle error
-    }
-
-    // Step 2: Explain the Generated Code
-    const explainInput: ExplainSelectedCodeInput = {
-        code: generatedOutput.code,
-        language: input.explanationLanguage,
-    };
-    let explanationOutput;
-    try {
-        console.log("Calling explainSelectedCode flow...");
-        explanationOutput = await explainSelectedCode(explainInput);
-        if (!explanationOutput?.explanation) {
-             throw new Error("Code explanation returned empty result.");
-        }
-        console.log("Code explanation successful.");
-    } catch (error) {
-        console.error("Error in code explanation step:", error);
-         throw new Error("Failed to explain generated code."); // Re-throw or handle error
-    }
-
-    console.log("generateAndExplainCode flow completed.");
-    return {
-        generatedCode: generatedOutput.code,
-        explanation: explanationOutput.explanation,
-    };
-}
-
-
-// --- Example 2: Using a Genkit Tool ---
+// --- Genkit Tool Example ---
 // Define a hypothetical tool that could be used by a Genkit flow.
 // Tools allow the LLM to call back into your application code.
 
@@ -90,8 +34,8 @@ export const getProjectFilesTool = ai.defineTool(
         console.log("Executing getProjectFilesTool with input:", input);
         // !!! Placeholder Implementation !!!
         // In a real scenario, this would interact with the backend/filesystem
+        // (e.g., call an API endpoint on LanguageEnvService or GitService)
         // to get the actual file list based on the current project context.
-        // This requires backend integration (e.g., an API endpoint the tool can call).
         await new Promise(resolve => setTimeout(resolve, 200)); // Simulate async work
 
         // Example static response:
@@ -100,14 +44,16 @@ export const getProjectFilesTool = ai.defineTool(
         } else if (input.directory === 'src/components') {
              return ['src/components/retro-window.tsx']; // Example non-recursive
         } else {
-            return ['package.json', 'README.md', 'src/app/page.tsx', 'src/lib/utils.ts', 'src/components/retro-window.tsx'];
+            return ['package.json', 'README.md', 'src/app/page.tsx', 'src/lib/utils.ts', 'src/components/retro-window.tsx', 'services/ai-service/src/memory.ts'];
         }
         // !!! End Placeholder !!!
     }
 );
 
 
-// Example of defining a flow that USES the tool:
+// --- Genkit Flow Using a Tool Example ---
+// Example of defining a flow that USES the tool.
+
 const GenerateReadmeInputSchema = z.object({
   projectName: z.string().describe("The name of the project."),
   projectDescription: z.string().describe("A brief description of the project."),
@@ -154,13 +100,12 @@ export const generateReadmeFlow = ai.defineFlow(
 );
 
 // Exported wrapper function for the flow
-export async function generateProjectReadme(input: z.infer<typeof GenerateReadmeInputSchema>) {
+export async function generateProjectReadme(input: z.infer<typeof GenerateReadmeInputSchema>): Promise<z.infer<typeof GenerateReadmeOutputSchema>> {
     return generateReadmeFlow(input);
 }
 
 
 // --- Potential Enhancements ---
-// - More complex chaining logic (conditional execution, loops)
-// - Error handling and retry mechanisms within chains
-// - Integration with state management for longer conversations/agent memory
-// - Defining more sophisticated tools that interact with backend services (Git, Docker, Nix)
+// - Defining more sophisticated tools that interact with backend services (Git, Docker, Nix, Secrets, Observability)
+// - Integrating tools with LangChain agents via the coordinator service.
+```
