@@ -191,7 +191,7 @@ body {
          height: 14px;
          margin-right: 0.25rem; /* Consistent spacing */
      }
-      .retro-menu-item .menubǝar-shortcut { /* Adjust shortcut color on hover */
+      .retro-menu-item .menubar-shortcut { /* Adjust shortcut color on hover */
           @apply group-hover:text-primary-foreground group-focus:text-primary-foreground;
       }
 
@@ -261,4 +261,3 @@ body {
    }
 
 }
-```

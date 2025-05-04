@@ -200,8 +200,9 @@ const TerminalAndLogs = () => (
             <p>Security Scanner</p>
             <p className="text-muted-foreground text-xs">SAST and dependency scan results.</p>
              <ScrollArea className="h-32 retro-scrollbar border border-border-dark p-1 my-1">
-                 <li>[INFO] No critical vulnerabilities found.</li>
+                 <ul><li>[INFO] No critical vulnerabilities found.</li>
                  <li>[WARN] Dependency 'old-lib' v1.0 has known security issue.</li>
+                 </ul>
              </ScrollArea>
             <Button className="retro-button mt-1" size="sm">Scan Now</Button>
             <Button className="retro-button mt-1 ml-1" size="sm" variant="secondary">Auto-Fix PR</Button>
@@ -704,62 +705,3 @@ const RetroMenubar = ({ onPluginManagerToggle }: { onPluginManagerToggle: () => 
 
 // Helper utility for class names (assuming it exists in lib/utils)
 // import { cn } from "@/lib/utils"; // Ensure this import is present
-
-// Add necessary styles to globals.css or a dedicated CSS file for retro look
-/*
-Add to your globals.css:
-
-.retro-menu-trigger {
-    @apply px-2 py-0.5 text-sm h-6 focus:bg-primary focus:text-primary-foreground data-[state=open]:bg-primary data-[state=open]:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground;
-     border-right: 1px solid hsl(var(--border-dark)); // Add bevel effect
-     border-bottom: 1px solid hsl(var(--border-dark));
-     border-left: 1px solid hsl(var(--border-light));
-     border-top: 1px solid hsl(var(--border-light));
-     margin: 1px; // Space for border
-}
- .retro-menu-trigger[data-state=open] {
-     border-left: 1px solid hsl(var(--border-dark));
-     border-top: 1px solid hsl(var(--border-dark));
-     border-right: 1px solid hsl(var(--border-light));
-     border-bottom: 1px solid hsl(var(--border-light));
-     background-color: hsl(var(--muted)); // Indicate open state subtly
- }
-
-.retro-menu-content {
-    @apply retro-window !absolute !mt-0.5 !rounded-none !border-2 !p-0 min-w-[10rem];
-}
-
-.retro-menu-item {
-     @apply relative flex cursor-default select-none items-center px-2 py-0.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground;
-     /* Ensure icons align */
-     gap: 0.5rem;
- }
- .retro-menu-item .lucide {
-     width: 14px;
-     height: 14px;
-     margin-right: 0.25rem; /* Consistent spacing */
- }
-
- /* Simple Tabs styling */
- .retro-tabs-list {
-    @apply inline-flex h-7 items-center justify-start rounded-none bg-card p-0 border-b-2 border-border-dark;
- }
- .retro-tab-trigger {
-     @apply inline-flex items-center justify-center whitespace-nowrap px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50;
-      border-right: 2px solid transparent; /* Default state */
-      border-bottom: 2px solid transparent;
-      border-left: 2px solid transparent;
-      border-top: 2px solid transparent;
-      margin-bottom: -2px; /* Overlap border */
-      background-color: hsl(var(--muted)); /* Default tab background */
- }
-  .retro-tab-trigger[data-state=active] {
-      @apply text-foreground;
-      border-color: hsl(var(--border-light)) hsl(var(--border-dark)) transparent hsl(var(--border-light));
-      background-color: hsl(var(--card)); /* Active tab matches window */
-      z-index: 1;
-  }
-
-*/
-
-```
