@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2017", // Match Node.js version compatibility
+    "module": "CommonJS", // Standard for Node.js/Express
+    "lib": ["ESNext"],
+    "outDir": "./dist", // Output directory for compiled JS
+    "rootDir": "./src", // Source directory
+    "strict": true,
+    "esModuleInterop": true, // Allows default imports from commonjs modules
+    "skipLibCheck": true, // Skip type checking of declaration files
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "sourceMap": true, // Generate source maps for debugging
+    "moduleResolution": "node"
+    // "baseUrl": "./", // Optional: If using path aliases
+    // "paths": { // Optional: Example path alias
+    //   "@/*": ["src/*"]
+    // }
+  },
+  "include": ["src/**/*"], // Which files to include in compilation
+  "exclude": ["node_modules", "**/*.spec.ts", "dist"] // Which files/folders to exclude
+}

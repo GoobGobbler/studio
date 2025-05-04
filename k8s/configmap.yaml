@@ -1,0 +1,22 @@
+# k8s/configmap.yaml
+# Placeholder Kubernetes ConfigMap for RetroIDE configuration
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: retroide-config
+data:
+  # --- General Configuration ---
+  NODE_ENV: "production"
+  # Frontend related URLs
+  NEXT_PUBLIC_COLLABORATION_WS_URL: "wss://retroide.yourdomain.com/ws" # Public WS URL (use wss for TLS)
+  # Backend Service URLs (Internal - used by other services if needed)
+  # These might not be strictly necessary if services communicate directly via Service names
+  # COLLABORATION_SERVICE_URL: "http://retroide-collaboration-service:3001"
+  # SECRETS_SERVICE_URL: "http://retroide-secrets-service:3002"
+  # --- AI Configuration ---
+  OLLAMA_BASE_URL: "http://retroide-ollama-service:11434" # Internal URL for Ollama service (if used)
+  # --- Database/Cache Configuration ---
+  REDIS_URL: "redis://retroide-redis-service:6379" # Internal URL for Redis service
+  # Add other database connection strings, external API endpoints etc.
+  # EXAMPLE_API_ENDPOINT: "https://api.example.com/v1"

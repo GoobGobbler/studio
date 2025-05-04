@@ -1,0 +1,124 @@
+# docker-compose.yml
+# Defines the multi-container application environment for RetroIDE
+
+version: '3.8'
+
+services:
+  # Frontend Next.js Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile # Assumes a Dockerfile exists in the root
+    container_name: retroide-frontend
+    ports:
+      - "9002:9002" # Map host port 9002 to container port 9002 (default Next.js dev)
+    environment:
+      # Pass necessary environment variables from host .env or define here
+      - NODE_ENV=development
+      - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434} # Default to ollama service if running
+      - REDIS_URL=redis://redis:6379
+      - COLLABORATION_SERVICE_URL=http://collaboration-service:3001
+      - SECRETS_SERVICE_URL=http://secrets-service:3002
+      # NEXT_PUBLIC_... variables needed by the client
+      - NEXT_PUBLIC_COLLABORATION_WS_URL=ws://localhost:3001 # Use localhost for browser access
+    volumes:
+      - .:/app # Mount the current directory to /app in the container
+      - /app/node_modules # Avoid mounting host node_modules over container's
+      - /app/.next # Persist .next build cache
+    depends_on:
+      - redis
+      - collaboration-service # Make sure backend services are available
+      - secrets-service
+      # - ollama # Uncomment if using the ollama service below
+    networks:
+      - retroide_network
+    # command: npm run dev # Or the command to start your Next.js app
+
+  # Collaboration Service (Placeholder - Node.js/Express + Yjs)
+  collaboration-service:
+    build:
+      context: ./services/collaboration-service # Path to the service's Dockerfile context
+      dockerfile: Dockerfile
+    container_name: retroide-collaboration
+    ports:
+      - "3001:3001" # Expose service port
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - ./services/collaboration-service:/app
+      - /app/node_modules
+    networks:
+      - retroide_network
+    # command: npm run start # Command to start the service
+
+  # Secrets Service (Placeholder - Node.js/Express)
+  secrets-service:
+    build:
+      context: ./services/secrets-service # Path to the service's Dockerfile context
+      dockerfile: Dockerfile
+    container_name: retroide-secrets
+    ports:
+      - "3002:3002" # Expose service port
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - SECRET_VAULT_KEY=${SECRET_VAULT_KEY} # Load from host .env
+      # Add database connection string if needed (e.g., POSTGRES_URL)
+    depends_on:
+      # - database # Add dependency if using a database service
+      - redis # Example dependency
+    volumes:
+      - ./services/secrets-service:/app
+      - /app/node_modules
+    networks:
+      - retroide_network
+    # command: npm run start # Command to start the service
+
+  # Redis for Sessions & Yjs State
+  redis:
+    image: redis:alpine
+    container_name: retroide-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - retroide_network
+
+  # --- Optional Services ---
+
+  # Ollama Service (Uncomment if needed)
+  # ollama:
+  #   image: ollama/ollama:latest # Or a specific version
+  #   container_name: retroide-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama # Persist models
+  #   networks:
+  #     - retroide_network
+  #   # Add GPU support if available/needed
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: 1
+  #   #           capabilities: [gpu]
+
+  # Add other services like Database, Vector Store, etc. here
+
+# Volumes definition
+volumes:
+  redis_data:
+  # ollama_data: # Uncomment if using ollama service
+
+# Network definition
+networks:
+  retroide_network:
+    driver: bridge

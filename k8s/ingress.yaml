@@ -1,0 +1,51 @@
+# k8s/ingress.yaml
+# Placeholder Kubernetes Ingress for RetroIDE
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: retroide-ingress
+  annotations:
+    # --- Common Annotations (adjust based on your Ingress controller) ---
+    # Nginx Ingress Controller:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m" # Allow larger uploads if needed
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300" # Increase timeout for long polling/WS
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Enable WebSockets for collaboration service path
+    nginx.ingress.kubernetes.io/websocket-services: "retroide-collaboration-service" # Name of the WS service
+    # Let's Encrypt / Cert-Manager:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod" # Replace with your issuer name
+    # --- End Annotations ---
+spec:
+  ingressClassName: nginx # Or your ingress controller class name (e.g., traefik, haproxy)
+  tls:
+  - hosts:
+    - retroide.yourdomain.com # Replace with your actual domain
+    secretName: retroide-tls-secret # Cert-Manager will create this secret
+  rules:
+  - host: retroide.yourdomain.com # Replace with your actual domain
+    http:
+      paths:
+      - path: / # Route for the frontend application
+        pathType: Prefix
+        backend:
+          service:
+            name: retroide-frontend-service # Service defined in service.yaml
+            port:
+              number: 80 # Service port
+      - path: /ws # Dedicated path for WebSocket connections (optional, can be same as service)
+        pathType: Prefix
+        backend:
+          service:
+            name: retroide-collaboration-service # Collaboration service
+            port:
+              number: 3001 # Port where the WS server listens
+      # Add paths for other backend services if exposing them directly (e.g., /api/secrets)
+      # - path: /api/secrets
+      #   pathType: Prefix
+      #   backend:
+      #     service:
+      #       name: retroide-secrets-service
+      #       port:
+      #         number: 3002

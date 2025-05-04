@@ -1,41 +1,94 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+.pnp.js
+.yarn/install-state.gz
 
-# testing
+# Testing
 /coverage
 
-# next.js
+# Next.js build output
 /.next/
 /out/
 
-# production
+# Production build artifacts
 /build
+/dist
 
-# misc
+# Miscellaneous
 .DS_Store
 *.pem
 
-# debug
+# Log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# vercel
-.vercel
+# OS generated files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Environment variables
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-.genkit/*
-.env*
+# IDE config
+.idea/
+.vscode/*
+!.vscode/settings.json # Keep project-specific VSCode settings if desired
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Terraform state
+.terraform/
+*.tfstate
+*.tfstate.*.backup
+crash.log
+override.tf
+override.tf.json
+_override.tf
+_override.tf.json
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+
+# Firebase emulator
+*.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+database-debug.log
+storage-debug.log
+*.snapshot
+
+# Genkit generated files (if any)
+# .genkit/
+
+# Nix build artifacts
+/result*
+/.direnv/
+
+# Service specific build outputs/data (already ignored in their respective .gitignores, but good practice here too)
+/services/*/dist
+/services/*/node_modules
+/services/*/yjs-db # Example local data
+
+# Optional: Comment out if you want to commit package-lock.json (recommended)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

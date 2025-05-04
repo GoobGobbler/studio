@@ -1,0 +1,235 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RetroIDE Plugin Manifest",
+  "description": "Defines the structure for a RetroIDE plugin manifest file (e.g., plugin.json).",
+  "type": "object",
+  "properties": {
+    "manifestVersion": {
+      "description": "Version of the manifest schema.",
+      "type": "string",
+      "const": "1.0"
+    },
+    "id": {
+      "description": "Unique identifier for the plugin (e.g., publisher.plugin-name).",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z0-9][a-z0-9-]*$"
+    },
+    "version": {
+      "description": "Plugin version (Semantic Versioning recommended).",
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "name": {
+      "description": "Human-readable name of the plugin.",
+      "type": "string",
+      "minLength": 3
+    },
+    "description": {
+      "description": "A brief description of what the plugin does.",
+      "type": "string",
+      "maxLength": 200
+    },
+    "publisher": {
+      "description": "Name of the plugin publisher.",
+      "type": "string"
+    },
+    "icon": {
+      "description": "Path to an icon file (e.g., .png, .svg) relative to the plugin root.",
+      "type": "string",
+      "pattern": "^.+\\.(svg|png|jpg|jpeg)$"
+    },
+    "repository": {
+      "description": "URL of the plugin's source code repository.",
+      "type": "string",
+      "format": "uri"
+    },
+    "engines": {
+      "description": "Specifies the RetroIDE version compatibility.",
+      "type": "object",
+      "properties": {
+        "retroide": {
+          "type": "string",
+          "description": "Semantic version range (e.g., ^0.1.0)"
+        }
+      },
+      "required": ["retroide"]
+    },
+    "categories": {
+      "description": "Categories the plugin belongs to (e.g., Linters, Themes, Snippets, DevOps).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "activationEvents": {
+      "description": "Events that trigger the plugin's activation.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "onStartup", // Activate when RetroIDE starts
+          "onLanguage:javascript", // Activate when a JS file is opened
+          "onLanguage:python",
+          "onLanguage:typescript",
+          "onCommand:myplugin.commandName", // Activate when a specific command is executed
+          "onView:myplugin.viewId", // Activate when a custom view is visible
+          "onFileOpen", // Activate when any file is opened
+          "workspaceContains:**/package.json" // Activate if workspace contains matching files
+          // Add more specific events as needed
+        ]
+      }
+    },
+    "main": {
+      "description": "Path to the plugin's main entry point script (e.g., JavaScript file).",
+      "type": "string"
+    },
+    "contributes": {
+      "description": "Describes the contributions the plugin makes to RetroIDE.",
+      "type": "object",
+      "properties": {
+        "commands": {
+          "description": "Register commands in the command palette.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string", "description": "Unique command ID (e.g., myplugin.helloWorld)." },
+              "title": { "type": "string", "description": "User-visible title in the command palette." },
+              "category": { "type": "string", "description": "Optional category for grouping commands." },
+              "icon": { "type": "string", "description": "Optional icon (Lucide icon name or path)." }
+            },
+            "required": ["command", "title"]
+          }
+        },
+        "menus": {
+          "description": "Add items to existing menus (e.g., editor/context, explorer/context).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "command": { "type": "string", "description": "Command to execute when item is selected." },
+                "when": { "type": "string", "description": "Condition when the menu item should be visible (e.g., editorHasSelection)." },
+                "group": { "type": "string", "description": "Group identifier for ordering (e.g., navigation, 1_modification)." }
+              },
+              "required": ["command"]
+            }
+          }
+        },
+        "keybindings": {
+          "description": "Define default keyboard shortcuts.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "key": { "type": "string", "description": "Key combination (e.g., ctrl+shift+p)." },
+              "mac": { "type": "string", "description": "Mac-specific key combination." },
+              "when": { "type": "string", "description": "Context when the keybinding is active." }
+            },
+            "required": ["command", "key"]
+          }
+        },
+        "configuration": {
+          "description": "Define configuration settings accessible via the settings UI.",
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "description": "Title for the settings section." },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "enum": ["string", "number", "boolean", "array", "object"] },
+                  "default": { "description": "Default value." },
+                  "description": { "type": "string", "description": "Description of the setting." },
+                  "enum": { "type": "array", "description": "Possible values for string type." },
+                  "items": { "type": "object", "description": "Schema for array items." }
+                },
+                "required": ["type", "description"]
+              }
+            }
+          }
+        },
+        "views": {
+          "description": "Contribute custom views to the sidebar or panels.",
+          "type": "object",
+          "additionalProperties": { // Key is the view location (e.g., "explorer", "debug")
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "description": "Unique view ID." },
+                "name": { "type": "string", "description": "User-visible view name." },
+                "when": { "type": "string", "description": "Context when the view should be visible." },
+                "icon": { "type": "string", "description": "Optional icon path." }
+              },
+              "required": ["id", "name"]
+            }
+          }
+        },
+        "yamlWorkflows": {
+           "description": "Define reusable YAML workflow templates.",
+           "type": "array",
+           "items": {
+             "type": "object",
+             "properties": {
+               "id": { "type": "string", "description": "Unique workflow ID." },
+               "title": { "type": "string", "description": "User-visible workflow name." },
+               "description": { "type": "string", "description": "Description of the workflow." },
+               "templatePath": { "type": "string", "description": "Path to the YAML template file relative to plugin root." },
+               "schemaPath": { "type": "string", "description": "Optional path to a JSON schema for workflow variables." }
+             },
+             "required": ["id", "title", "templatePath"]
+           }
+        },
+         "linters": {
+            "description": "Register linters for specific languages.",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "language": { "type": "string", "description": "Language ID (e.g., javascript, python)." },
+                    "command": { "type": "string", "description": "Command to execute the linter (from plugin's context)." },
+                    "args": { "type": "array", "items": { "type": "string" }, "description": "Arguments to pass to the command." },
+                    "problemMatcher": { "type": "string", "description": "Name of a predefined or custom problem matcher." }
+                },
+                "required": ["language", "command"]
+            }
+         },
+          "formatters": {
+             "description": "Register code formatters.",
+              "type": "array",
+             "items": { /* Similar structure to linters */ }
+          },
+          "generators": {
+              "description": "Register code generators.",
+              "type": "array",
+              "items": {
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string", "description": "Unique generator ID." },
+                      "title": { "type": "string", "description": "User-visible title." },
+                      "command": { "type": "string", "description": "Command ID to invoke the generator." },
+                      "contexts": { "type": "array", "items": { "type": "string" }, "description": "Contexts where this generator appears (e.g., fileExplorer/contextMenu)." }
+                  },
+                   "required": ["id", "title", "command"]
+              }
+          }
+        // Add other contribution points: themes, snippets, language grammars, debuggers, etc.
+      }
+    }
+  },
+  "required": [
+    "manifestVersion",
+    "id",
+    "version",
+    "name",
+    "description",
+    "publisher",
+    "engines"
+    // "main" might not be required if the plugin only contributes static content like themes
+  ]
+}

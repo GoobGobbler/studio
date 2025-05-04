@@ -1,0 +1,56 @@
+# k8s/service.yaml
+# Placeholder Kubernetes Service for RetroIDE Frontend
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: retroide-frontend-service
+spec:
+  selector:
+    app: retroide-frontend # Matches the labels of the Pods created by the Deployment
+  ports:
+    - protocol: TCP
+      port: 80 # Port the service will listen on within the cluster
+      targetPort: 9002 # Port the container is listening on
+  type: ClusterIP # Exposes the service on a cluster-internal IP (default)
+                 # Use LoadBalancer for cloud providers or NodePort for direct node access
+                 # Consider using an Ingress controller for HTTP routing
+
+# --- Placeholder Services for Backend Services ---
+# Add similar services for collaboration-service, secrets-service, redis, ollama etc.
+# Ensure the selectors match the respective deployment labels.
+# Example for collaboration-service:
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: retroide-collaboration-service
+# spec:
+#   selector:
+#     app: retroide-collaboration
+#   ports:
+#     - name: http # Port for potential REST endpoints
+#       protocol: TCP
+#       port: 3001
+#       targetPort: 3001
+#     - name: websocket # Separate port or handled by same port? Depends on implementation
+#       protocol: TCP
+#       port: 3001 # Assuming WS on the same port, adjust if different
+#       targetPort: 3001
+#   type: ClusterIP
+# ---
+# Example for redis:
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: retroide-redis-service
+# spec:
+#   selector:
+#     app: retroide-redis # Assuming redis deployment/statefulset has this label
+#   ports:
+#     - protocol: TCP
+#       port: 6379
+#       targetPort: 6379
+#   type: ClusterIP
+# ---
