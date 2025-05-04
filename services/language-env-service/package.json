@@ -1,0 +1,37 @@
+{
+  "name": "quonxcoder-language-env-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Manages language environments, file system access, and command execution for QuonxCoder.",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsc-watch --onSuccess \"node dist/server.js\"",
+    "lint": "eslint . --ext .ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-pty": "^1.0.0", # For interactive terminal sessions
+    "shelljs": "^0.8.5" # For simpler command execution
+    # Consider adding libraries for Nix interaction if managing Nix environments directly
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20",
+    "@types/node-pty": "^0.10.4",
+    "@types/shelljs": "^0.8.15",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    "eslint": "^8.57.0",
+    "tsc-watch": "^6.2.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

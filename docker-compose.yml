@@ -23,11 +23,25 @@ services:
       - AI_SERVICE_URL=http://ai-service:3003 # URL for AI Service
       - AGENT_COORDINATOR_URL=http://agent-coordinator:3004 # URL for Agent Coordinator
       - OBSERVABILITY_SERVICE_URL=http://observability-service:3005 # URL for Observability Service
+      - LANGUAGE_ENV_SERVICE_URL=http://language-env-service:3006 # URL for Language Env Service
+      - GIT_SERVICE_URL=http://git-service:3007 # URL for Git Service
+      - DEPLOYMENT_SERVICE_URL=http://deployment-service:3008 # URL for Deployment Service
+      - PLUGIN_REGISTRY_URL=http://plugin-registry:3009 # URL for Plugin Registry Service
+      - WORKFLOW_SERVICE_URL=http://workflow-service:3010 # URL for Workflow Service
+      - DEBUGGER_SERVICE_URL=http://debugger-service:3011 # URL for Debugger Service (REST part, if any)
       # NEXT_PUBLIC_... variables needed by the client
       - NEXT_PUBLIC_COLLABORATION_WS_URL=ws://localhost:3001 # Use localhost for browser access
       - NEXT_PUBLIC_SECRETS_SERVICE_URL=/api/proxy/secrets # Example proxy path
       - NEXT_PUBLIC_AI_SERVICE_URL=/api/proxy/ai # Example proxy path
       - NEXT_PUBLIC_AGENT_COORDINATOR_URL=/api/proxy/agents # Example proxy path
+      - NEXT_PUBLIC_LANG_ENV_SERVICE_URL=/api/proxy/lang # Proxy for file/exec
+      - NEXT_PUBLIC_GIT_SERVICE_URL=/api/proxy/git # Proxy for Git
+      - NEXT_PUBLIC_PLUGIN_REGISTRY_URL=/api/proxy/plugins # Proxy for Plugins
+      - NEXT_PUBLIC_WORKFLOW_SERVICE_URL=/api/proxy/workflows # Proxy for Workflows
+      - NEXT_PUBLIC_DEPLOYMENT_SERVICE_URL=/api/proxy/deploy # Proxy for Deployments
+      - NEXT_PUBLIC_OBSERVABILITY_SERVICE_URL=/api/proxy/observability # Proxy for Observability
+      - NEXT_PUBLIC_DEBUGGER_WS_URL=ws://localhost:3011/dap # Direct WS for DAP
+      - NEXT_PUBLIC_LANG_ENV_PTY_WS_URL=ws://localhost:3006/pty # Direct WS for PTY
       - NEXT_PUBLIC_USE_WEBRTC=${NEXT_PUBLIC_USE_WEBRTC:-false}
     volumes:
       - .:/app # Mount the current directory to /app in the container
@@ -37,22 +51,25 @@ services:
       - redis
       - collaboration-service
       - secrets-service
-      - ai-service # Depends on AI service
+      - ai-service
       - agent-coordinator
-      - vector-db # Depends on vector DB
+      - vector-db
+      - observability-service
+      - language-env-service # Added
+      - git-service # Added
+      - deployment-service # Added
+      - plugin-registry # Added
+      - workflow-service # Added
+      - debugger-service # Added
       # - ollama # Uncomment if using the ollama service below
-      # - language-env-service # Add if implemented
-      # - git-service # Add if implemented
-      # - deployment-service # Add if implemented
-      # - observability-service # Add if implemented
     networks:
       - quonxcoder_network
-    # command: npm run dev # Or the command to start your Next.js app
+    command: npm run dev # Or the command to start your Next.js app in dev mode
 
   # Collaboration Service (Node.js/Express + Yjs)
   collaboration-service:
     build:
-      context: ./services/collaboration-service # Path to the service's Dockerfile context
+      context: ./services/collaboration-service
       dockerfile: Dockerfile
     container_name: quonxcoder-collaboration
     ports:
@@ -68,12 +85,11 @@ services:
       - /app/node_modules
     networks:
       - quonxcoder_network
-    # command: npm run start # Command to start the service
 
   # Secrets Service (Node.js/Express + AES)
   secrets-service:
     build:
-      context: ./services/secrets-service # Path to the service's Dockerfile context
+      context: ./services/secrets-service
       dockerfile: Dockerfile
     container_name: quonxcoder-secrets
     ports:
@@ -82,7 +98,7 @@ services:
       - NODE_ENV=development
       - PORT=3002
       - SECRET_VAULT_KEY=${SECRET_VAULT_KEY} # Load from host .env
-      # Add database connection string if needed (e.g., POSTGRES_URL)
+      - INTERNAL_SERVICE_API_KEY=${INTERNAL_SERVICE_API_KEY:-supersecret} # Added internal key
     depends_on:
       - redis # Example dependency
     volumes:
@@ -90,12 +106,11 @@ services:
       - /app/node_modules
     networks:
       - quonxcoder_network
-    # command: npm run start # Command to start the service
 
   # AI Service (Node.js/Express - Manages Memory, LLM Calls, RAG)
   ai-service:
     build:
-      context: ./services/ai-service # Path to the service's Dockerfile context
+      context: ./services/ai-service
       dockerfile: Dockerfile
     container_name: quonxcoder-ai
     ports:
@@ -107,24 +122,25 @@ services:
       - VECTOR_DB_URL=http://vector-db:6333 # URL for Vector DB (Qdrant default)
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434} # Default to host Ollama
       - GOOGLE_GENAI_API_KEY=${GOOGLE_GENAI_API_KEY} # Optional
+      - AGENT_COORDINATOR_URL=http://agent-coordinator:3004 # Needs to call coordinator for summarization
       # Add API keys for other external LLMs if needed (Claude, GPT-4o)
       # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - redis
       - vector-db
+      - agent-coordinator # Added dependency
       # - ollama # If running Ollama as a service
     volumes:
       - ./services/ai-service:/app
       - /app/node_modules
     networks:
       - quonxcoder_network
-    # command: npm run start
 
   # Agent Coordinator Service (Node.js/Express - Orchestrates AI Agents)
   agent-coordinator:
     build:
-      context: ./services/agent-coordinator # Path to the service's Dockerfile context
+      context: ./services/agent-coordinator
       dockerfile: Dockerfile
     container_name: quonxcoder-agent-coordinator
     ports:
@@ -134,18 +150,25 @@ services:
       - PORT=3004
       - AI_SERVICE_URL=http://ai-service:3003 # Depends on AI Service
       - REDIS_URL=redis://redis:6379 # For task queues/state
-      # Potentially needs access to other services (Git, Deploy, etc.)
+      - LANGUAGE_ENV_SERVICE_URL=http://language-env-service:3006 # Needs for exec/test
+      - GIT_SERVICE_URL=http://git-service:3007 # Needs for Git actions
+      - DEPLOYMENT_SERVICE_URL=http://deployment-service:3008 # Needs for deployment
+      - OBSERVABILITY_SERVICE_URL=http://observability-service:3005 # Needs for reporting metrics/feedback
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434} # Might need direct access too
     depends_on:
       - redis
       - ai-service
+      - language-env-service
+      - git-service
+      - deployment-service
+      - observability-service
     volumes:
       - ./services/agent-coordinator:/app
       - /app/node_modules
     networks:
       - quonxcoder_network
-    # command: npm run start
 
-  # Vector Database (Example: Qdrant - replace with ChromaDB if preferred)
+  # Vector Database (Example: Qdrant)
   vector-db:
     image: qdrant/qdrant:latest
     container_name: quonxcoder-vector-db
@@ -154,12 +177,10 @@ services:
       - "6334:6334" # gRPC
     volumes:
       - vector_db_data:/qdrant/storage
-    # environment:
-      # - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY} # Add API key if needed
     networks:
       - quonxcoder_network
 
-  # Redis for Sessions, Yjs State, Short-Term Cache, Queues
+  # Redis
   redis:
     image: redis:alpine
     container_name: quonxcoder-redis
@@ -170,94 +191,169 @@ services:
     networks:
       - quonxcoder_network
 
-  # Observability Service (Placeholder - e.g., Prometheus/Grafana/Loki stack or custom service)
+  # Observability Service
   observability-service:
     build:
-      context: ./services/observability-service # Path to the service's Dockerfile context
+      context: ./services/observability-service
       dockerfile: Dockerfile
     container_name: quonxcoder-observability
     ports:
       - "3005:3005" # Example port
-      # Expose Grafana/Prometheus ports if using them directly
-      # - "3000:3000" # Grafana default
-      # - "9090:9090" # Prometheus default
     environment:
       - NODE_ENV=development
       - PORT=3005
-      # Add configuration for connecting to monitoring DB, etc.
-    depends_on:
-      - redis # Example dependency
+      - INTERNAL_SERVICE_API_KEY=${INTERNAL_SERVICE_API_KEY:-supersecret} # Needs internal key
     volumes:
       - ./services/observability-service:/app
       - /app/node_modules
-      # Add volumes for Prometheus/Grafana/Loki data if needed
-      # - grafana_data:/var/lib/grafana
-      # - prometheus_data:/prometheus
     networks:
       - quonxcoder_network
-    # command: npm run start
-
-  # --- Optional Services ---
-
-  # Ollama Service (Uncomment if needed, adjust OLLAMA_BASE_URL in other services)
-  # ollama:
-  #   image: ollama/ollama:latest # Or a specific version
-  #   container_name: quonxcoder-ollama
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama # Persist models
-  #   networks:
-  #     - quonxcoder_network
-  #   # Add GPU support if available/needed
-  #   # deploy:
-  #   #   resources:
-  #   #     reservations:
-  #   #       devices:
-  #   #         - driver: nvidia
-  #   #           count: 1 # Adjust GPU count as needed
-  #   #           capabilities: [gpu]
 
   # Language Environment Service (Placeholder - Nix based)
-  # language-env-service:
-  #   build:
-  #     context: ./services/language-env-service
-  #     dockerfile: Dockerfile
-  #   container_name: quonxcoder-lang-env
-  #   ports:
-  #     - "3006:3006" # Example port
-  #   # ... other configs
+  language-env-service:
+    build:
+      context: ./services/language-env-service
+      dockerfile: Dockerfile
+    container_name: quonxcoder-lang-env
+    ports:
+      - "3006:3006" # Expose service port
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - WORKSPACE_ROOT=/app # Set workspace inside container
+    volumes:
+      - .:/app # Mount workspace into the service for file access
+      - /app/node_modules # Avoid mount over
+      - /app/.next # Avoid mount over
+      # Mount other necessary host paths if needed (e.g., Nix store?)
+    networks:
+      - quonxcoder_network
+    privileged: true # Often required for node-pty to work correctly inside Docker
 
   # Git Service (Placeholder)
-  # git-service:
-  #   build:
-  #     context: ./services/git-service
-  #     dockerfile: Dockerfile
-  #   container_name: quonxcoder-git
-  #   ports:
-  #     - "3007:3007" # Example port
-  #   # ... other configs
+  git-service:
+    build:
+      context: ./services/git-service
+      dockerfile: Dockerfile
+    container_name: quonxcoder-git
+    ports:
+      - "3007:3007" # Expose service port
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - WORKSPACE_ROOT=/app # Point to workspace root
+    volumes:
+      - .:/app # Mount workspace for Git operations
+      - /app/node_modules
+      - /app/.next
+      # Mount user's SSH keys for remote operations? (Requires careful security considerations)
+      # - ~/.ssh:/root/.ssh:ro
+    networks:
+      - quonxcoder_network
 
   # Deployment Service (Placeholder)
-  # deployment-service:
-  #   build:
-  #     context: ./services/deployment-service
-  #     dockerfile: Dockerfile
-  #   container_name: quonxcoder-deploy
-  #   ports:
-  #     - "3008:3008" # Example port
-  #   # ... other configs
+  deployment-service:
+    build:
+      context: ./services/deployment-service
+      dockerfile: Dockerfile
+    container_name: quonxcoder-deploy
+    ports:
+      - "3008:3008" # Expose service port
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      # Add cloud provider credentials (via secrets or mounted files)
+      # - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+      # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # - FIREBASE_TOKEN=${FIREBASE_TOKEN}
+    volumes:
+      - ./services/deployment-service:/app
+      - /app/node_modules
+      # Mount workspace if deployments need access to build artifacts
+      - .:/workspace:ro
+      # Mount kubectl config, terraform state, etc. if needed
+      # - ~/.kube:/root/.kube:ro
+      # - ./terraform:/app/terraform
+    networks:
+      - quonxcoder_network
+
+  # Plugin Registry Service (Added)
+  plugin-registry:
+    build:
+      context: ./services/plugin-registry
+      dockerfile: Dockerfile
+    container_name: quonxcoder-plugin-registry
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      # Add storage config (DB connection, file path)
+    volumes:
+      - ./services/plugin-registry:/app
+      - /app/node_modules
+      # Mount a volume for storing plugin files if installed locally
+      - plugin_data:/app/plugins
+    networks:
+      - quonxcoder_network
+
+  # Workflow Service (Added)
+  workflow-service:
+    build:
+      context: ./services/workflow-service
+      dockerfile: Dockerfile
+    container_name: quonxcoder-workflow-service
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=development
+      - PORT=3010
+      # URLs of services the workflow might need to call
+      - AGENT_COORDINATOR_URL=http://agent-coordinator:3004
+      - LANGUAGE_ENV_SERVICE_URL=http://language-env-service:3006
+      - GIT_SERVICE_URL=http://git-service:3007
+      - DEPLOYMENT_SERVICE_URL=http://deployment-service:3008
+    volumes:
+      - ./services/workflow-service:/app
+      - /app/node_modules
+      # Mount workspace if workflows need to read files (e.g., YAML definitions)
+      - .:/workspace:ro
+    depends_on: # Ensure dependent services are available
+      - agent-coordinator
+      - language-env-service
+      - git-service
+      - deployment-service
+    networks:
+      - quonxcoder_network
+
+  # Debugger Service (Added)
+  debugger-service:
+    build:
+      context: ./services/debugger-service
+      dockerfile: Dockerfile
+    container_name: quonxcoder-debugger-service
+    ports:
+      - "3011:3011" # Expose service port (for potential REST + WebSocket)
+    environment:
+      - NODE_ENV=development
+      - PORT=3011
+    volumes:
+      - ./services/debugger-service:/app
+      - /app/node_modules
+      # Mount workspace if debugger needs access to source code
+      - .:/workspace:ro
+    networks:
+      - quonxcoder_network
 
 # Volumes definition
 volumes:
   redis_data:
   vector_db_data:
+  plugin_data: # Added volume for plugins
   # ollama_data: # Uncomment if using ollama service
-  # grafana_data: # Uncomment if using observability stack
-  # prometheus_data:
 
 # Network definition
 networks:
   quonxcoder_network:
     driver: bridge
-```

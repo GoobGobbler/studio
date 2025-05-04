@@ -1,0 +1,39 @@
+{
+  "name": "quonxcoder-debugger-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Handles Debug Adapter Protocol (DAP) communication for QuonxCoder.",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsc-watch --onSuccess \"node dist/server.js\"",
+    "lint": "eslint . --ext .ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.18.0", # For WebSocket communication with frontend
+    # Required DAP implementation packages based on target languages
+    # e.g., 'vscode-debugadapter' for base protocol types
+    # e.g., 'vscode-node-debug2' or similar for Node.js debugging
+    # e.g., 'debugpy' for Python (might need wrapper)
+    "vscode-debugadapter": "^1.64.0" # Base DAP types
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20",
+    "@types/ws": "^8.5.11",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    "eslint": "^8.57.0",
+    "tsc-watch": "^6.2.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

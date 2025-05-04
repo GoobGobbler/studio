@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { PackageOpen, Puzzle } from "lucide-react"; // Import Puzzle icon
+import { PackageOpen, Puzzle, CheckCircle, AlertTriangle, DownloadCloud, Trash2, RefreshCw } from "lucide-react"; // Added more icons
 
 interface Plugin {
     id: string;
@@ -21,23 +21,30 @@ interface Plugin {
 interface PluginManagerContentProps {
     plugins: Plugin[]; // Expect plugins data as prop
     loading: boolean;
+    onInstall: (plugin: Plugin) => void; // Add callback props
+    onUninstall: (plugin: Plugin) => void;
+    onUpdate: (plugin: Plugin) => void;
 }
 
-export const PluginManagerContent: React.FC<PluginManagerContentProps> = ({ plugins = [], loading = false }) => {
-    const { toast } = useToast();
+export const PluginManagerContent: React.FC<PluginManagerContentProps> = ({
+    plugins = [],
+    loading = false,
+    onInstall,
+    onUninstall,
+    onUpdate
+}) => {
+    const { toast } = useToast(); // Keep toast for local feedback if needed
     const [searchTerm, setSearchTerm] = React.useState('');
 
+    // Use the passed handlers directly
     const handleInstall = (plugin: Plugin) => {
-         toast({ title: `Installing Plugin: ${plugin.name}`, description: "TODO: Implement installation logic via Marketplace/Backend." });
-         // Placeholder: update UI state (needs proper state management if props aren't refetched)
+        onInstall(plugin);
     }
     const handleUninstall = (plugin: Plugin) => {
-        toast({ title: `Uninstalling Plugin: ${plugin.name}`, description: "TODO: Implement uninstallation logic.", variant: "destructive" });
-         // Placeholder: update UI state
+        onUninstall(plugin);
     }
-     const handleUpdate = (plugin: Plugin) => {
-         toast({ title: `Updating Plugin: ${plugin.name}`, description: "TODO: Implement update logic." });
-          // Placeholder: update UI state
+    const handleUpdate = (plugin: Plugin) => {
+        onUpdate(plugin);
     }
 
     const filteredPlugins = plugins.filter(plugin =>
@@ -65,18 +72,18 @@ export const PluginManagerContent: React.FC<PluginManagerContentProps> = ({ plug
                                  <li key={plugin.id} className="mb-1 p-1 border border-transparent hover:border-border-dark flex justify-between items-start">
                                      <div>
                                          <span className="font-semibold">{plugin.name} v{plugin.version}</span> <span className="text-xs text-muted-foreground">({plugin.category})</span>
-                                         {plugin.installed && <span className="text-xs text-green-600 ml-1">(Installed)</span>}
-                                         {plugin.updateAvailable && <span className="text-xs text-blue-600 ml-1">(Update Available)</span>}
+                                         {plugin.installed && <CheckCircle size={12} className="inline text-green-600 ml-1" title="Installed"/>}
+                                         {plugin.updateAvailable && <AlertTriangle size={12} className="inline text-blue-600 ml-1" title="Update Available"/>}
                                          <p className="text-xs text-muted-foreground mt-0.5">{plugin.description}</p>
                                      </div>
-                                      <div className="space-x-1 shrink-0 pl-2">
+                                      <div className="space-x-1 shrink-0 pl-2 flex items-center">
                                           {plugin.installed ? (
                                               <>
-                                                 {plugin.updateAvailable && <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleUpdate(plugin)}>Update</Button>}
-                                                 <Button size="sm" variant="destructive" className="retro-button !py-0 !px-1" onClick={() => handleUninstall(plugin)}>Uninstall</Button>
+                                                 {plugin.updateAvailable && <Button size="sm" className="retro-button !py-0 !px-1" title="Update" onClick={() => handleUpdate(plugin)}><RefreshCw size={10}/></Button>}
+                                                 <Button size="sm" variant="destructive" className="retro-button !py-0 !px-1" title="Uninstall" onClick={() => handleUninstall(plugin)}><Trash2 size={10}/></Button>
                                              </>
                                          ) : (
-                                             <Button size="sm" className="retro-button !py-0 !px-1" onClick={() => handleInstall(plugin)}>Install</Button>
+                                             <Button size="sm" className="retro-button !py-0 !px-1" title="Install" onClick={() => handleInstall(plugin)}><DownloadCloud size={10}/></Button>
                                          )}
                                       </div>
                                   </li>
@@ -85,10 +92,6 @@ export const PluginManagerContent: React.FC<PluginManagerContentProps> = ({ plug
                      ) : <p className="text-muted-foreground p-2">No plugins found{searchTerm ? ' matching search.' : '.'}</p>
                  )}
             </ScrollArea>
-             {/* Footer actions might not be needed if install/uninstall is per-plugin */}
-             {/* <div className="mt-2 pt-2 border-t border-border-dark flex justify-end">
-                 <Button size="sm" className="retro-button">Check for Updates</Button>
-             </div> */}
         </div>
     );
 };

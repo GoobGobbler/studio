@@ -5,119 +5,210 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Terminal as TerminalIcon, FileCode, Cpu, ShieldCheck, BarChart3 } from "lucide-react";
-// TODO: Import xterm.js related types/modules
-// import { Terminal } from 'xterm';
-// import { FitAddon } from 'xterm-addon-fit';
-// import 'xterm/css/xterm.css';
+import { Terminal as TerminalIcon, FileCode, Cpu, ShieldCheck, BarChart3, RefreshCw } from "lucide-react";
+// Import xterm.js related types/modules
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import 'xterm/css/xterm.css';
 
 interface TerminalAndLogsProps {
     logStream: string[]; // Accept log stream as a prop
+    // Add props for profiling, security, telemetry data and loading states
+    profilingData?: any;
+    profilingLoading?: boolean;
+    onRunProfiling?: () => void;
+    securityData?: any;
+    securityLoading?: boolean;
+    onRunSecurityScan?: () => void;
+    telemetryData?: any;
+    telemetryLoading?: boolean;
+    onRefreshTelemetry?: () => void;
 }
 
-export const TerminalAndLogs = React.forwardRef<any, TerminalAndLogsProps>(({ logStream }, ref) => { // Forward ref
-     const terminalContainerRef = React.useRef<HTMLDivElement>(null);
-     const fitAddonRef = React.useRef<any>(null); // Ref for FitAddon instance
-     // Removed local logs state, using prop instead
+// --- PTY WebSocket Configuration ---
+const PTY_WS_URL = process.env.NEXT_PUBLIC_LANG_ENV_SERVICE_URL?.replace(/^http/, 'ws') + '/pty' || 'ws://localhost:3006/pty'; // Example
 
-    // --- Effect for Terminal Initialization ---
+export const TerminalAndLogs = React.forwardRef<any, TerminalAndLogsProps>((
+    {
+        logStream,
+        profilingData,
+        profilingLoading,
+        onRunProfiling,
+        securityData,
+        securityLoading,
+        onRunSecurityScan,
+        telemetryData,
+        telemetryLoading,
+        onRefreshTelemetry
+    }, ref) => {
+    const terminalContainerRef = React.useRef<HTMLDivElement>(null);
+    const terminalInstanceRef = React.useRef<Terminal | null>(null); // Store Terminal instance
+    const fitAddonRef = React.useRef<FitAddon | null>(null); // Ref for FitAddon instance
+    const ptySocketRef = React.useRef<WebSocket | null>(null);
+
+    // --- Effect for Terminal Initialization and PTY Connection ---
     React.useEffect(() => {
-        // Ensure this runs only once or when dependencies change (like theme)
-        let terminalInstance: any = null; // Keep instance locally in effect scope
+        let term: Terminal | null = null;
+        let fitAddon: FitAddon | null = null;
+        let socket: WebSocket | null = null;
         let resizeObserver: ResizeObserver | null = null;
+        let connectInterval: NodeJS.Timeout | null = null;
 
-        if (terminalContainerRef.current && !terminalInstance) { // Check if already initialized
+        function connectPtyWebSocket() {
+             if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+                 console.log("PTY WebSocket already open or connecting.");
+                 return;
+             }
+             console.log("Attempting to connect to PTY WebSocket:", PTY_WS_URL);
+             socket = new WebSocket(PTY_WS_URL);
+             ptySocketRef.current = socket; // Store socket ref
+
+            socket.onopen = () => {
+                 console.log("PTY WebSocket connected.");
+                 term?.write("\r\n*** QuonxTerm Connected ***\r\n$ ");
+                 // Ensure terminal fits container on connect
+                 setTimeout(() => fitAddon?.fit(), 100); // Slight delay ensure DOM ready
+                 if (connectInterval) {
+                      clearInterval(connectInterval);
+                      connectInterval = null;
+                 }
+             };
+
+            socket.onmessage = (event) => {
+                 // Received data from PTY backend
+                 term?.write(event.data);
+             };
+
+            socket.onerror = (error) => {
+                 console.error("PTY WebSocket Error:", error);
+                 term?.write("\r\n*** WebSocket Error ***\r\n");
+             };
+
+            socket.onclose = (event) => {
+                 console.log("PTY WebSocket disconnected.", event.code, event.reason);
+                 term?.write(`\r\n*** Connection Closed (Code: ${event.code}) ***\r\n`);
+                 ptySocketRef.current = null;
+                 // Attempt to reconnect?
+                 if (!connectInterval && event.code !== 1000) { // Don't retry on normal close
+                      console.log("Attempting to reconnect PTY WebSocket in 5 seconds...");
+                      connectInterval = setInterval(connectPtyWebSocket, 5000);
+                 }
+             };
+        }
+
+
+        if (terminalContainerRef.current && !terminalInstanceRef.current) {
             console.log("Initializing xterm.js...");
-            // Placeholder: Replace with actual xterm initialization when library is added
-            const mockTerm = {
-                write: (text: string) => {
-                     if (terminalContainerRef.current) {
-                         // Simple text append for placeholder
-                         const line = document.createElement('div');
-                         line.textContent = text.replace(/\r\n/g, '\n').replace(/\n/g, ''); // Basic line handling
-                         terminalContainerRef.current.appendChild(line);
-                         terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight; // Auto-scroll
-                     }
-                },
-                onData: (callback: (data: string) => void) => {
-                    // Mock input handling - maybe add an input field below?
-                    console.log("Mock Terminal: onData registered.");
-                },
-                loadAddon: (addon: any) => { console.log("Mock Terminal: Load addon", addon);},
-                open: (element: HTMLElement) => { console.log("Mock Terminal: Open"); },
-                dispose: () => { console.log("Mock Terminal: Dispose"); terminalInstance = null; }
-            };
-            const mockFitAddon = {
-                 fit: () => { console.log("Mock Terminal: Fit addon called.");}
-            };
+            term = new Terminal({
+                cursorBlink: true,
+                fontFamily: 'var(--font-mono), monospace',
+                fontSize: 13,
+                theme: { // Basic retro theme
+                    background: '#000000',
+                    foreground: '#00FF00', // Green text
+                    cursor: '#00FF00',
+                    selectionBackground: '#008080', // Teal selection
+                    black: '#000000',
+                    red: '#FF0000',
+                    green: '#00FF00',
+                    yellow: '#FFFF00',
+                    blue: '#0000FF',
+                    magenta: '#FF00FF',
+                    cyan: '#00FFFF',
+                    white: '#FFFFFF',
+                    brightBlack: '#808080',
+                    brightRed: '#FF0000',
+                    brightGreen: '#00FF00',
+                    brightYellow: '#FFFF00',
+                    brightBlue: '#0000FF',
+                    brightMagenta: '#FF00FF',
+                    brightCyan: '#00FFFF',
+                    brightWhite: '#FFFFFF'
+                }
+            });
+            fitAddon = new FitAddon();
+            fitAddonRef.current = fitAddon;
+            term.loadAddon(fitAddon);
 
-            fitAddonRef.current = mockFitAddon;
-            mockTerm.loadAddon(mockFitAddon);
-            mockTerm.open(terminalContainerRef.current);
-            mockFitAddon.fit(); // Initial fit
+            // Mount terminal
+            term.open(terminalContainerRef.current);
+            fitAddon.fit(); // Initial fit
 
-            mockTerm.write('Welcome to QuonxTerm! (Placeholder)\r\n$ ');
+            term.write('Welcome to QuonxTerm!\r\nConnecting to backend...\r\n');
 
-            // Example: Handle input (send to backend WebSocket/service)
-            mockTerm.onData(data => {
-                console.log("Terminal Input (Placeholder):", data);
-                // Send data to backend shell process via WebSocket/API
-                // For local echo: mockTerm.write(data);
+            // Connect to WebSocket
+            connectPtyWebSocket();
+
+            // Handle user input -> send to WebSocket
+            term.onData(data => {
+                 // console.log("Terminal Input:", data); // Debug
+                if (ptySocketRef.current && ptySocketRef.current.readyState === WebSocket.OPEN) {
+                    ptySocketRef.current.send(data);
+                } else {
+                    console.warn("PTY WebSocket not connected, cannot send input.");
+                    term?.write("\r\n*** Not Connected ***\r\n");
+                }
             });
 
-             // Example: Handle output from backend
-             // backendSocket.on('terminal-output', (output) => {
-             //    mockTerm.write(output);
-             // });
+            terminalInstanceRef.current = term; // Store instance
 
-            terminalInstance = mockTerm; // Store instance if needed outside effect
             if (ref) { // Assign to forwarded ref if provided
                  if (typeof ref === 'function') {
-                     ref(terminalInstance);
+                     ref(term);
                  } else {
-                     ref.current = terminalInstance;
+                     ref.current = term;
                  }
              }
 
              // Handle resize
              resizeObserver = new ResizeObserver(() => {
-                  fitAddonRef.current?.fit();
+                  try {
+                      fitAddon?.fit();
+                       // Inform backend PTY process about resize
+                       const dims = term?.proposeDimensions();
+                       if (dims && ptySocketRef.current && ptySocketRef.current.readyState === WebSocket.OPEN) {
+                           ptySocketRef.current.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                       }
+                  } catch (e) {
+                      console.error("Error fitting terminal:", e);
+                  }
               });
-              // Observe the parent of the container for size changes
               const parentElement = terminalContainerRef.current?.parentElement;
               if (parentElement) {
                   resizeObserver.observe(parentElement);
               } else {
                   console.warn("Terminal container parent not found for resize observer.");
               }
-
-            // Cleanup function
-            return () => {
-                 console.log("Disposing xterm.js instance...");
-                 resizeObserver?.disconnect();
-                 terminalInstance?.dispose();
-                 if (ref) { // Clear forwarded ref
-                      if (typeof ref === 'function') {
-                          ref(null);
-                      } else {
-                          ref.current = null;
-                      }
-                 }
-            };
         }
-        // If dependencies like theme are added, include them in the array below
-    }, []); // Run once on mount
+
+        // Cleanup function
+        return () => {
+             console.log("Cleaning up TerminalAndLogs component...");
+             resizeObserver?.disconnect();
+             if (connectInterval) clearInterval(connectInterval);
+             socket?.close(); // Close WebSocket
+             term?.dispose(); // Dispose terminal instance
+             terminalInstanceRef.current = null;
+             fitAddonRef.current = null;
+             ptySocketRef.current = null;
+             if (ref) { // Clear forwarded ref
+                  if (typeof ref === 'function') {
+                      ref(null);
+                  } else {
+                      ref.current = null;
+                  }
+             }
+        };
+    }, [ref]); // Rerun effect only if ref changes (shouldn't happen often)
 
     // Scroll logs to bottom
     const logScrollAreaRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {
         if (logScrollAreaRef.current) {
-            // Find the viewport element within the ScrollArea component
-             const viewportElement = logScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            const viewportElement = logScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
             if (viewportElement) {
                 viewportElement.scrollTop = viewportElement.scrollHeight;
             } else {
-                 // Fallback for direct scroll area element if Radix structure changes
                  logScrollAreaRef.current.scrollTop = logScrollAreaRef.current.scrollHeight;
             }
         }
@@ -129,21 +220,16 @@ export const TerminalAndLogs = React.forwardRef<any, TerminalAndLogsProps>(({ lo
             <TabsList className="retro-tabs-list shrink-0">
                 <TabsTrigger value="terminal" className="retro-tab-trigger"><TerminalIcon size={14} className="mr-1" />Terminal</TabsTrigger>
                 <TabsTrigger value="logs" className="retro-tab-trigger"><FileCode size={14} className="mr-1" />Logs</TabsTrigger>
-                 {/* Keep other tabs as placeholders */}
-                 <TabsTrigger value="profiling" className="retro-tab-trigger" disabled><Cpu size={14} className="mr-1" />Profiling</TabsTrigger>
-                 <TabsTrigger value="security" className="retro-tab-trigger" disabled><ShieldCheck size={14} className="mr-1" />Security</TabsTrigger>
-                 <TabsTrigger value="dashboard" className="retro-tab-trigger" disabled><BarChart3 size={14} className="mr-1" />Dashboard</TabsTrigger>
+                 <TabsTrigger value="profiling" className="retro-tab-trigger"><Cpu size={14} className="mr-1" />Profiling</TabsTrigger>
+                 <TabsTrigger value="security" className="retro-tab-trigger"><ShieldCheck size={14} className="mr-1" />Security</TabsTrigger>
+                 <TabsTrigger value="dashboard" className="retro-tab-trigger"><BarChart3 size={14} className="mr-1" />Telemetry</TabsTrigger>
             </TabsList>
 
             {/* Terminal Tab */}
             <TabsContent value="terminal" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-0">
-                 <div className="flex flex-col h-full bg-black text-[#00FF00] font-mono text-xs border-t-2 border-border-dark">
-                     {/* Container for xterm.js */}
-                     <div ref={terminalContainerRef} id="terminal-container" className="flex-grow w-full h-full p-1 overflow-y-auto">
-                         {/* xterm.js will attach here or placeholder content */}
-                     </div>
-                     {/* Optional separate input if not handled by xterm */}
-                      {/* <Input type="text" placeholder="> Enter command..." aria-label="Terminal Input" className="retro-input !bg-black !text-[#00FF00] font-mono text-xs !rounded-none !border-none !border-t-2 !border-t-[#555555] focus:!ring-0 h-6 shrink-0" onKeyDown={handleTerminalInput} /> */}
+                 {/* Container for xterm.js */}
+                 <div ref={terminalContainerRef} id="terminal-container" className="w-full h-full bg-black">
+                     {/* xterm.js will attach here */}
                  </div>
             </TabsContent>
 
@@ -159,32 +245,57 @@ export const TerminalAndLogs = React.forwardRef<any, TerminalAndLogsProps>(({ lo
             </TabsContent>
 
              {/* Profiling Tab */}
-            <TabsContent value="profiling" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-2 text-sm">
-                 <p className="font-semibold flex items-center gap-1"><Cpu size={14} />Profiling Panel (Placeholder)</p>
+            <TabsContent value="profiling" className="flex-grow overflow-y-auto mt-0 rounded-none border-none p-2 text-sm bg-card border-t-2 border-border-dark">
+                 <div className="flex justify-between items-center mb-1">
+                    <p className="font-semibold flex items-center gap-1"><Cpu size={14} />Profiling Panel</p>
+                    <Button className="retro-button !py-0 !px-1" size="sm" onClick={onRunProfiling} disabled={profilingLoading}>
+                         <RefreshCw size={12} className={`mr-1 ${profilingLoading ? 'animate-spin' : ''}`}/> Run Analysis
+                    </Button>
+                 </div>
                  <p className="text-muted-foreground text-xs mb-2">Performance metrics and bundle analysis.</p>
-                 <div className="h-32 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Chart Area Placeholder</div>
-                 <Button className="retro-button mt-2" size="sm" disabled>Run Analysis</Button>
+                 <ScrollArea className="h-48 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
+                    {profilingLoading ? <p>Loading profiling data...</p> :
+                    profilingData ? <pre className="text-xs">{JSON.stringify(profilingData, null, 2)}</pre> :
+                    <p>No profiling data available. Click 'Run Analysis'.</p>}
+                    {/* TODO: Add Charts (e.g., flame graph, bundle size breakdown) */}
+                 </ScrollArea>
             </TabsContent>
 
              {/* Security Tab */}
-            <TabsContent value="security" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-2 text-sm">
-                 <p className="font-semibold flex items-center gap-1"><ShieldCheck size={14} />Security Scanner (Placeholder)</p>
+            <TabsContent value="security" className="flex-grow overflow-y-auto mt-0 rounded-none border-none p-2 text-sm bg-card border-t-2 border-border-dark">
+                 <div className="flex justify-between items-center mb-1">
+                     <p className="font-semibold flex items-center gap-1"><ShieldCheck size={14} />Security Scanner</p>
+                     <Button className="retro-button !py-0 !px-1" size="sm" onClick={onRunSecurityScan} disabled={securityLoading}>
+                         <RefreshCw size={12} className={`mr-1 ${securityLoading ? 'animate-spin' : ''}`}/> Scan Now
+                     </Button>
+                 </div>
                  <p className="text-muted-foreground text-xs mb-1">SAST and dependency scan results.</p>
-                 <ScrollArea className="h-32 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
-                     <p>[INFO] Ready to scan.</p>
+                 <ScrollArea className="h-48 retro-scrollbar border border-border-dark p-1 my-1 bg-white">
+                     {securityLoading ? <p>Running security scan...</p> :
+                     securityData ? <pre className="text-xs whitespace-pre-wrap">{typeof securityData === 'string' ? securityData : JSON.stringify(securityData, null, 2)}</pre> :
+                     <p>No security data available. Click 'Scan Now'.</p>}
                  </ScrollArea>
-                 <Button className="retro-button mt-1" size="sm" disabled>Scan Now</Button>
             </TabsContent>
 
-             {/* Dashboard Tab */}
-            <TabsContent value="dashboard" className="flex-grow overflow-hidden mt-0 rounded-none border-none p-2 text-sm">
-                 <p className="font-semibold flex items-center gap-1"><BarChart3 size={14} />Telemetry Dashboard (Placeholder)</p>
+             {/* Telemetry Tab */}
+            <TabsContent value="dashboard" className="flex-grow overflow-y-auto mt-0 rounded-none border-none p-2 text-sm bg-card border-t-2 border-border-dark">
+                 <div className="flex justify-between items-center mb-1">
+                     <p className="font-semibold flex items-center gap-1"><BarChart3 size={14} />Telemetry Dashboard</p>
+                      <Button className="retro-button !py-0 !px-1" size="sm" onClick={onRefreshTelemetry} disabled={telemetryLoading}>
+                          <RefreshCw size={12} className={`mr-1 ${telemetryLoading ? 'animate-spin' : ''}`}/> Refresh
+                      </Button>
+                 </div>
                  <p className="text-muted-foreground text-xs mb-2">Errors, Performance, AI Usage.</p>
-                 <div className="h-20 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Errors Chart Placeholder</div>
-                 <div className="h-20 border border-border-dark my-1 flex items-center justify-center text-muted-foreground bg-white">Performance Chart Placeholder</div>
+                 <div className="border border-border-dark p-1 my-1 bg-white min-h-[100px]">
+                      {telemetryLoading ? <p>Loading telemetry data...</p> :
+                      telemetryData ? <pre className="text-xs">{JSON.stringify(telemetryData, null, 2)}</pre> :
+                      <p>No telemetry data available.</p>}
+                      {/* TODO: Add actual charts */}
+                      <p className="text-center text-muted-foreground text-xs mt-4">Charts Placeholder</p>
+                 </div>
             </TabsContent>
         </Tabs>
     );
 });
 
-TerminalAndLogs.displayName = "TerminalAndLogs"; // Add display name for forwardRef
+TerminalAndLogs.displayName = "TerminalAndLogs";
